@@ -1,0 +1,5 @@
+[plugin]
+package = "esncard_validation"
+modules = [ "esncard_validation" ]
+marketplace_name = "esncard_validation"
+
