@@ -13,7 +13,7 @@ from pretix.base.services.cart import CartError
 
 @receiver(validate_cart, dispatch_uid='pretix_esncard_validate_cart')
 def esncard_validate_cart(sender, **kwargs):
-    logging.basicConfig(filename='/workspace/esncard_validation/log.log', level=logging.DEBUG, force=True, filemode="w")
+    logging.basicConfig(filename='/workspace/pretix-esncard-validation/log.log', level=logging.DEBUG, force=True, filemode="w")
     logger = logging.getLogger("validate_cart_logger")
     logger.setLevel(logging.DEBUG)
     logger.debug(type(sender))
