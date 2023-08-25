@@ -72,7 +72,9 @@ def esncard_validate_cart(sender, **kwargs):
         for answer in position.answers.all():
             if answer.question.identifier == 'esncard':
                 card_number = str(answer).upper()
-                if card_number in [i['code'] for i in expired] + [i['code'] for i in available] + [i['code'] for i in invalid] + duplicates + empty_cards:
+                logger.debug(f"Card number for deletion check: {card_number}")
+                logger.debug(f"List of card numbers to delete: {[i['code'] for i in expired] + [i['code'] for i in available] + [i['code'] for i in invalid] + [i['code'] for i in empty_cards] + duplicates}")
+                if card_number in [i['code'] for i in expired] + [i['code'] for i in available] + [i['code'] for i in invalid] + [i['code'] for i in empty_cards] + duplicates:
                     answer.delete()
 
     # Generate error message
