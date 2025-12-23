@@ -1,5 +1,5 @@
-recursive-include esncard_validation/static *
-recursive-include esncard_validation/templates *
-recursive-include esncard_validation/locale *
+recursive-include pretix_esncard/static *
+recursive-include pretix_esncard/templates *
+recursive-include pretix_esncard/locale *
 include LICENSE
 exclude .gitlab-ci.yml

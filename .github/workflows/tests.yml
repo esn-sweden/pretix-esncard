@@ -4,11 +4,11 @@ on:
   push:
     branches: [ main, master ]
     paths-ignore:
-      - 'esncard_validation/locale/**'
+      - 'pretix_esncard/locale/**'
   pull_request:
     branches: [ main, master ]
     paths-ignore:
-      - 'esncard_validation/locale/**'
+      - 'pretix_esncard/locale/**'
 
 jobs:
   test:

@@ -1,6 +1,6 @@
 #!/bin/sh
-COMPONENTS=pretix/pretix-plugin-esncard-validation
-DIR=esncard_validation/locale
+COMPONENTS=pretix/pretix-plugin-pretix-esncard
+DIR=pretix_esncard/locale
 # Renerates .po files used for translating the plugin
 set -e
 set -x

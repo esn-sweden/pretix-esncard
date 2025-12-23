@@ -1,5 +1,4 @@
 [plugin]
-package = "esncard_validation"
-modules = [ "esncard_validation" ]
-marketplace_name = "esncard_validation"
-
+package = "pretix_esncard"
+modules = ["pretix_esncard"]
+marketplace_name = "esncard"
