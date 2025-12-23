@@ -1,7 +1,7 @@
 ESNcard Validity Checker
 ==========================
 
-This is a plugin for `pretix`_. 
+This is a plugin for `pretix`_.
 
 A plugin for pretix allowing automated validation of ESNcard numbers
 
@@ -38,16 +38,12 @@ You can auto-fix some of these issues by running::
 
 To automatically check for these issues before you commit, you can run ``.install-hooks``.
 
-
 License
 -------
-
 
 Copyright 2023 ESN Sea Battle OC
 
 Released under the terms of the Apache License 2.0
 
-
-
-.. _pretix: https://github.com/pretix/pretix
-.. _pretix development setup: https://docs.pretix.eu/en/latest/development/setup.html
+.. _pretix: <https://github.com/pretix/pretix>
+.._pretix development setup: <https://docs.pretix.eu/en/latest/development/setup.html>
