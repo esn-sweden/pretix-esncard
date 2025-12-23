@@ -46,4 +46,5 @@ Copyright 2023 ESN Sea Battle OC
 Released under the terms of the Apache License 2.0
 
 .. _pretix: <https://github.com/pretix/pretix>
-.._pretix development setup: <https://docs.pretix.eu/en/latest/development/setup.html>
+
+.. _pretix development setup: <https://docs.pretix.eu/en/latest/development/setup.html>

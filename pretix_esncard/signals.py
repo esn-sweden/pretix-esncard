@@ -65,9 +65,14 @@ def esncard_validate_cart(sender, **kwargs):
             if answer.question.identifier == "esncard":
                 card_number = str(answer).upper()
                 logger.debug(f"Card number for deletion check: {card_number}")
-                logger.debug(
-                    f"List of card numbers to delete: {[i['code'] for i in expired] + [i['code'] for i in available] + [i['code'] for i in invalid] + [i['code'] for i in empty_cards] + duplicates}"
+                codes_to_delete = (
+                    [i["code"] for i in expired]
+                    + [i["code"] for i in available]
+                    + [i["code"] for i in invalid]
+                    + [i["code"] for i in empty_cards]
+                    + duplicates
                 )
+                logger.debug(f"List of card numbers to delete: {codes_to_delete}")
                 if (
                     card_number
                     in [i["code"] for i in expired]
@@ -85,7 +90,7 @@ def esncard_validate_cart(sender, **kwargs):
         card = empty_cards.pop()
         error_msg = (
             error_msg
-            + f"The following ESNcard does not exist: {card['code']} ({card['name']}). Please double check the ESNcard numbers for typos! "
+            + f"The following ESNcard does not exist: {card['code']} ({card['name']}). Please double check the ESNcard numbers for typos!"
         )
     elif len(empty_cards) > 1:
         card = empty_cards.pop()
@@ -94,14 +99,14 @@ def esncard_validate_cart(sender, **kwargs):
             card = empty_cards.pop()
             msg = msg + f", {card['code']} ({card['name']})"
         error_msg = (
-            error_msg + msg + ". Please double check the ESNcard numbers for typos! "
+            error_msg + msg + ". Please double check the ESNcard numbers for typos!"
         )
     # If there are duplicate card numbers in the card
     if len(duplicates) == 1:
         code = duplicates.pop()
         error_msg = (
             error_msg
-            + f"The following ESNcard number was used more than once: {code}. Note that the ESNcard discount is personal! "
+            + f"The following ESNcard number was used more than once: {code}. Note that the ESNcard discount is personal!"
         )
     elif len(duplicates) > 1:
         code = duplicates.pop()
@@ -109,13 +114,13 @@ def esncard_validate_cart(sender, **kwargs):
         while len(empty_cards) > 0:
             code = duplicates.pop()
             msg = msg + f", {code}"
-        error_msg = error_msg + msg + ". Note that the ESNcard discount is personal! "
+        error_msg = error_msg + msg + ". Note that the ESNcard discount is personal!"
     # If there are expired card numbers in the cart
     if len(expired) == 1:
         card = expired.pop()
-        error_msg = (
-            error_msg
-            + f"The following ESNcard: {card['code']} ({card['name']}), expired on {card['expiration-date']}. You can purchase a new ESNcard from your ESN section. "
+        error_msg = error_msg + (
+            f"The following ESNcard: {card['code']} ({card['name']}), expired on {card['expiration-date']}. "
+            "You can purchase a new ESNcard from your ESN section."
         )
     elif len(expired) > 1:
         card = expired.pop()
@@ -124,14 +129,14 @@ def esncard_validate_cart(sender, **kwargs):
             card = expired.pop()
             msg = msg + f", {card['code']} ({card['name']})"
         error_msg = (
-            error_msg + msg + ". You can purchase a new ESNcard from your ESN section. "
+            error_msg + msg + ". You can purchase a new ESNcard from your ESN section."
         )
     # If there are unregistered card numbers in the cart
     if len(available) == 1:
         card = available.pop()
-        error_msg = (
-            error_msg
-            + f"The following ESNcard has not been registered yet: {card['code']} ({card['name']}). Please add the card to your ESNcard account on https://esncard.org. "
+        error_msg = error_msg + (
+            f"The following ESNcard has not been registered yet: {card['code']} ({card['name']}). "
+            "Please add the card to your ESNcard account on https://esncard.org."
         )
     elif len(available) > 1:
         card = available.pop()
@@ -142,14 +147,14 @@ def esncard_validate_cart(sender, **kwargs):
         error_msg = (
             error_msg
             + msg
-            + ". Please add the card to your ESNcard account on https://esncard.org. "
+            + ". Please add the card to your ESNcard account on https://esncard.org."
         )
     # If there are card numbers that for some other reason are not valid
     if len(invalid) == 1:
         card = invalid.pop()
         error_msg = (
             error_msg
-            + f"The following ESNcard is invalid: {card['code']} ({card['name']}). Contact us at support@seabattle.se for more information. "
+            + f"The following ESNcard is invalid: {card['code']} ({card['name']}). Contact us at support@seabattle.se for more information."
         )
     elif len(invalid) > 1:
         card = invalid.pop()
@@ -160,7 +165,7 @@ def esncard_validate_cart(sender, **kwargs):
         error_msg = (
             error_msg
             + msg
-            + ". Contact us at support@seabattle.se for more information. "
+            + ". Contact us at support@seabattle.se for more information."
         )
     # If there are any invalid ESNcards in the cart, append at the end any other card numbers that may still be valid
     if error_msg != "":
@@ -168,7 +173,7 @@ def esncard_validate_cart(sender, **kwargs):
             card = active.pop()
             error_msg = (
                 error_msg
-                + f"The following ESNcard is valid: {card['code']} ({card['name']}). "
+                + f"The following ESNcard is valid: {card['code']} ({card['name']})."
             )
         elif len(active) > 1:
             card = active.pop()
@@ -176,7 +181,7 @@ def esncard_validate_cart(sender, **kwargs):
             while len(active) > 0:
                 card = active.pop()
                 msg = msg + f", {card['code']} ({card['name']})"
-            error_msg = error_msg + msg + ". "
+            error_msg = error_msg + msg + "."
         # Post error message (and return to first step of checkout)
         logger.debug(error_msg)
         raise CartError(error_msg)
