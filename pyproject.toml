@@ -1,6 +1,6 @@
 [project]
 name = "pretix-esncard"
-version = "1.1.2"
+version = "1.1.3"
 description = "A plugin for pretix allowing automated validation of ESNcard numbers"
 readme = "README.rst"
 license = "Apache-2.0"
