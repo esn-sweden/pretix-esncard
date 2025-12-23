@@ -1,9 +1,5 @@
-import datetime
-import json
 import logging
 import requests
-from datetime import date
-from django.contrib import messages
 from django.dispatch import receiver
 from pretix.base.services.cart import CartError
 from pretix.base.signals import validate_cart
