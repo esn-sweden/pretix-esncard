@@ -1,0 +1,34 @@
+[project]
+name = "pretix-esncard"
+version = "1.1.2"
+description = "A plugin for pretix allowing automated validation of ESNcard numbers"
+readme = "README.rst"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+keywords = ["pretix"]
+authors = [
+    { name = "Mårten Lundström", email = "marten.lundstrom@esnsweden.org" },
+]
+maintainers = [{ name = "Elias Jollivet", email = "wpa@esnsweden.org" }]
+
+dependencies = []
+
+[project.entry-points."pretix.plugin"]
+pretix-esncard = "pretix_esncard:PretixPluginMeta"
+
+[project.entry-points."distutils.commands"]
+build = "pretix_plugin_build.build:CustomBuild"
+
+[build-system]
+requires = ["setuptools", "pretix-plugin-build"]
+
+[project.urls]
+homepage = "https://github.com/esn-sweden/pretix-esncard"
+repository = "https://github.com/esn-sweden/pretix-esncard"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["pretix*"]
+namespaces = false
