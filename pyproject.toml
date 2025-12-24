@@ -2,7 +2,7 @@
 name = "pretix-esncard"
 dynamic = ["version"]
 description = "A plugin for pretix allowing automated validation of ESNcard numbers"
-readme = "README.rst"
+readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 keywords = ["pretix"]
