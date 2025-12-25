@@ -40,24 +40,17 @@ def esncard_validate_cart(sender, **kwargs):
                     response["name"] = position.attendee_name
                     esncards.append(response)
 
-    logger.info("ESNcards:")
-    logger.info(esncards)
-    logger.info("Empty cards:")
-    logger.info(empty_cards)
+    logger.debug(f"ESNcards: {esncards}")
+    logger.debug(f"Empty cards: {empty_cards}")
 
     duplicates = check_duplicates(esncards)
-    logger.info("Duplicates:")
-    logger.info(duplicates)
+    logger.debug(f"Duplicates: {duplicates}")
 
     active, expired, available, invalid = check_status(esncards)
-    logger.info("Active:")
-    logger.info(active)
-    logger.info("Expired:")
-    logger.info(expired)
-    logger.info("Available")
-    logger.info(available)
-    logger.info("Invalid:")
-    logger.info(invalid)
+    logger.debug(f"Active: {active}")
+    logger.debug(f"Expired: {expired}")
+    logger.debug(f"Available: {available}")
+    logger.debug(f"Invalid: {invalid}")
 
     # Delete ESNcard answers if not valid in order to allow new attempt
     for index, position in enumerate(kwargs["positions"]):
@@ -183,7 +176,7 @@ def esncard_validate_cart(sender, **kwargs):
                 msg = msg + f", {card['code']} ({card['name']})"
             error_msg = error_msg + msg + "."
         # Post error message (and return to first step of checkout)
-        logger.debug(error_msg)
+        logger.info(error_msg)
         raise CartError(error_msg)
 
 
