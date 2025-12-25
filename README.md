@@ -33,27 +33,25 @@ For more information about plugin installation, see the [Pretix documentation](h
 
 Activate the plugin from the organizer or event settings.
 
-Go to Products > Questions and select "Create a new question"
+Go to **Products > Questions** and select **"Create a new question"**
 
-* Question: "ESNcard number"
-* Type: Text (one line)
-* Products: Select all product which have an ESNcard discount
-* Check "required question".
+* **Question**: "ESNcard number"
+* **Type**: Text (one line)
+* **Products**: Select all product which have an ESNcard discount
+* **Check** "required question"
 
-**Go to Advanced:**
+Go to the **Advanced** tab
 
 Optionally write a help text such as the following:
 
-````text
-If you have issues proceeding due to your ESNcard, please make sure it is registered on ESNcard.org and that you type it correctly (do not include any spaces etc).
+> If you have issues proceeding due to your ESNcard, please make sure it is registered on ESNcard.org and that you type it correctly (do not include any spaces etc).
+>
+> If you just registered your card, it may take up to 4 hours until it shows up in our system!
 
-If you just registered your card, it may take up to 4 hours until it shows up in our system!
-````
+**Internal identifier**: `esncard`
 
-Internal identifier: `esncard`
-
-[!NOTE]
-You must write exactly this identifier for the plugin to work.
+> [!NOTE]
+> You must write exactly this identifier for the plugin to work.
 
 ### Validation
 
