@@ -1,4 +1,4 @@
 [plugin]
-package = "pretix_esncard"
+package = "pretix-esncard"
 modules = ["pretix_esncard"]
 marketplace_name = "esncard"
