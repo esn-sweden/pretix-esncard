@@ -56,7 +56,7 @@ def esncard_validate_cart(sender, **kwargs):
     for index, position in enumerate(kwargs["positions"]):
         for answer in position.answers.all():
             if answer.question.identifier == "esncard":
-                card_number = str(answer).upper()
+                card_number = str(answer).strip().upper()
                 logger.debug(f"Card number for deletion check: {card_number}")
                 codes_to_delete = (
                     [i["code"] for i in expired]
