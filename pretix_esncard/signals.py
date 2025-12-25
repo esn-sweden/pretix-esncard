@@ -25,7 +25,7 @@ def esncard_validate_cart(sender, **kwargs):
 
             logger.debug(str(position.answers.all()))
             if answer.question.identifier == "esncard":
-                card_number = str(answer).upper()
+                card_number = str(answer).strip().upper()
                 url = "https://esncard.org/services/1.0/card.json?code=" + card_number
                 response = requests.get(url).json()
                 if len(response) == 1:

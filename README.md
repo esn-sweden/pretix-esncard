@@ -44,7 +44,7 @@ Go to the **Advanced** tab
 
 Optionally write a help text such as the following:
 
-> If you have issues proceeding due to your ESNcard, please make sure it is registered on ESNcard.org and that you type it correctly (do not include any spaces etc).
+> If you have issues proceeding due to your ESNcard, please make sure it is registered on ESNcard.org and that you type it correctly.
 >
 > If you just registered your card, it may take up to 4 hours until it shows up in our system!
 
