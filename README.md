@@ -1,35 +1,65 @@
 # ESNcard Validity Checker
 
-A plugin for [Pretix](https://github.com/pretix/pretix) allowing automated validation of [ESNcard](https://esncard.org/) numbers.
+A plugin for [Pretix](https://github.com/pretix/pretix) allowing automated validation of ESNcard numbers.
 
 ## Installation
 
-Make sure to run from Pretix's virtual environment
+Make sure to run from Pretix's virtual environment:
 
-````bash
+````sh
 sudo -u pretix -s
 source /var/pretix/venv/bin/activate
 ````
 
-Then install the wheel and update the database just in case
+Install the package and update the database:
 
-````
-pip3 install path/to/file.whl
+````sh
+pip3 install pretix-esncard
 python -m pretix migrate
 python -m pretix rebuild
 ````
 
-Finally restart Pretix
+Restart Pretix:
 
-````bash
+````sh
 sudo systemctl restart pretix-web pretix-worker
 ````
 
-You can now activate the plugin from the organizer or event settings.
+For more information about plugin installation, see the [Pretix documentation](https://docs.pretix.eu/self-hosting/installation/manual_smallscale/#install-a-plugin).
 
-For more information, see [Pretix documentation](https://docs.pretix.eu/self-hosting/installation/manual_smallscale/#install-a-plugin)
+## Usage
 
-# Development setup
+### Setup
+
+Activate the plugin from the organizer or event settings.
+
+Go to Products > Questions and select "Create a new question"
+
+* Question: "ESNcard number"
+* Type: Text (one line)
+* Products: Select all product which have an ESNcard discount
+* Check "required question".
+
+**Go to Advanced:**
+
+Optionally write a help text such as the following:
+
+````text
+If you have issues proceeding due to your ESNcard, please make sure it is registered on ESNcard.org and that you type it correctly (do not include any spaces etc).
+
+If you just registered your card, it may take up to 4 hours until it shows up in our system!
+````
+
+Internal identifier: `esncard`
+
+[!NOTE]
+You must write exactly this identifier for the plugin to work.
+
+### Validation
+
+The ESNcard number is validated against the ESNcard API during checkout and the customer is notified of any errors.
+
+## Development
 
 1. Make sure that you have a working [pretix development setup](https://docs.pretix.eu/en/latest/development/setup.html)
 
@@ -39,25 +69,29 @@ For more information, see [Pretix documentation](https://docs.pretix.eu/self-hos
 
 4. Execute `python setup.py develop` within this directory to register this application with pretix's plugin registry.
 
-5. Execute `make` within this directory to compile translations.
-
-6. Restart your local pretix server. You can now use the plugin from this repository for your events by enabling it in
+5. Restart your local pretix server. You can now use the plugin from this repository for your events by enabling it in
    the 'plugins' tab in the settings.
 
 This plugin has CI set up to enforce a few code style rules. To check locally, you need these packages installed:
 
-    pip install flake8 isort black
+````sh
+pip install flake8 isort black
+````
 
 To check your plugin for rule violations, run:
 
-    black --check .
-    isort -c .
-    flake8 .
+````sh
+black --check .
+isort -c .
+flake8 .
+````
 
 You can auto-fix some of these issues by running:
 
-    isort .
-    black .
+````sh
+isort .
+black .
+````
 
 To automatically check for these issues before you commit, you can run `.install-hooks`.
 
