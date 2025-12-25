@@ -11,7 +11,7 @@ authors = [
 ]
 maintainers = [{ name = "Elias Jollivet", email = "wpa@esnsweden.org" }]
 
-dependencies = []
+dependencies = ["pretix", "django", "requests"]
 
 [project.entry-points."pretix.plugin"]
 pretix-esncard = "pretix_esncard:PretixPluginMeta"
