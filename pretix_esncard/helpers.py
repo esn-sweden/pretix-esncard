@@ -73,12 +73,16 @@ def generate_error_message(cards: list[ESNCardEntry]) -> str:
     Returns '' if no errors are found.
     """
     # Create status lists (bridge to keep the code below working for new ESNCardEntry class)
-    empty_cards = [c for c in cards if (c.status or "").lower() == "not found"]
-    expired = [c for c in cards if (c.status or "").lower() == "expired"]
-    available = [c for c in cards if (c.status or "").lower() == "available"]
-    invalid = [c for c in cards if (c.status or "").lower() == "invalid"]
-    active = [c for c in cards if (c.status or "").lower() == "active"]
-    duplicates = [c for c in cards if getattr(c, "duplicate", True)]
+    empty_cards = [c for c in cards if c.status == "not found"]
+    expired = [c for c in cards if c.status == "expired"]
+    available = [c for c in cards if c.status == "available"]
+    active = [c for c in cards if c.status == "active"]
+    invalid = [
+        c
+        for c in cards
+        if c.status not in ("available", "expired", "not found", "active")
+    ]
+    duplicates = [c for c in cards if c.duplicate]
 
     error_msg = ""
     # If there are card numbers not returning a JSON response (typo)
