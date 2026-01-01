@@ -57,7 +57,13 @@ Optionally write a help text such as the following:
 
 The ESNcard number is validated against the ESNcard API during checkout and the customer is notified of any errors.
 
+### Cloudflare bypass token
+
+To avoid getting blocked by Cloudflare when sending many requests, you may ask the WPA of ESN International for a bypass token which you can configure in the global Pretix settings. You can access the global settings by enabling admin mode and look for the option in the bottom of the left sidebar.
+
 ## Development
+
+### Environment
 
 1. Make sure that you have a working [pretix development setup](https://docs.pretix.eu/en/latest/development/setup.html)
 
@@ -69,6 +75,8 @@ The ESNcard number is validated against the ESNcard API during checkout and the 
 
 5. Restart your local pretix server. You can now use the plugin from this repository for your events by enabling it in
    the 'plugins' tab in the settings.
+
+### Linting
 
 This plugin has CI set up to enforce a few code style rules. To check locally, you need these packages installed:
 

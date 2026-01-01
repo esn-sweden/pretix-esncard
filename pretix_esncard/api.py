@@ -4,6 +4,7 @@ from typing import Optional
 
 import requests
 from django.conf import settings
+from pretix.base.settings import GlobalSettingsObject
 from requests import JSONDecodeError, Response
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -96,6 +97,11 @@ def validate_response(response: Response) -> dict | None:
     raise ExternalAPIError("ESNcard API returned multiple items")
 
 
+def get_cloudflare_token() -> str:
+    gs = GlobalSettingsObject()
+    return gs.settings.get("esncard_cf_token")
+
+
 def create_session() -> requests.Session:
     session = requests.Session()
 
@@ -107,13 +113,16 @@ def create_session() -> requests.Session:
 
     session.mount("https://", HTTPAdapter(max_retries=retries))
     session.headers.update(
-        {"User-Agent": f"Pretix-ESNCard-Validator/1.0 (+{settings.SITE_URL})"}
-    )
-    session.headers.update(
         {
+            "User-Agent": f"Pretix-ESNCard-Validator/1.0 (+{settings.SITE_URL})",
             "Accept": "application/json",
         }
     )
+
+    # Add Cloudflare bypass token if configured, to avoid being blocked
+    cf_token = get_cloudflare_token()
+    if cf_token:
+        session.headers.update({"x-bypass-cf-api": cf_token})
 
     return session
 
