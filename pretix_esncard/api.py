@@ -26,7 +26,7 @@ def fetch_card(card_number: str) -> dict:
     url = f"https://esncard.org/services/1.0/card.json?code={card_number}"
 
     try:
-        response = requests.get(url, timeout=3)
+        response = session.get(url, timeout=3)
         response.raise_for_status()
         data = response.json()
 
