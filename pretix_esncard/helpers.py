@@ -1,30 +1,43 @@
+from collections import Counter
+from logging import Logger
+
 import requests
+
+from pretix_esncard.models import ESNCardEntry
 
 API_URL = "https://esncard.org/services/1.0/card.json?code="
 
 
-def get_esncard_answers(**kwargs):
-    fields = []
+def get_esncard_answers(**kwargs) -> list[ESNCardEntry]:
+    """Returns all the ESNcard answers for the current order
+
+    For each position, checks for answers which have the identifier 'esncard'."""
+    entries = []
     for _, position in enumerate(kwargs["positions"]):
         for answer in position.answers.all():
             if answer.question.identifier == "esncard":
-                fields.append((position, answer))
-    return fields
+                name = position.attendee_name
+                card_number = str(answer).strip().upper()
+                entry = ESNCardEntry(
+                    position, answer=answer, card_number=card_number, name=name
+                )
+                entries.append(entry)
+    return entries
 
 
-def get_cards(answers):
-    esncards = []
-    empty_cards = []
-    for position, answer in answers:
-        card_number = str(answer).strip().upper()
-        card = fetch_card(card_number)
-        if not card:
-            card = {"code": card_number, "name": position.attendee_name}
-            empty_cards.append(card)
+def populate_cards(cards: list[ESNCardEntry]):
+    """Call the ESNcard API and populate the ESNCardEntry with this information
+
+    The statuses can be active, expired or available (not registered)
+    """
+    for card in cards:
+        response = fetch_card(card.card_number)
+        if not response:
+            card.status = "not found"
         else:
-            card["name"] = position.attendee_name
-            esncards.append(card)
-    return esncards, empty_cards
+            card.status = response["status"]
+            card.expiration_date = response["expiration-date"]
+            card.raw_api_data = response
 
 
 def fetch_card(card_number):
@@ -35,79 +48,61 @@ def fetch_card(card_number):
     return response
 
 
-def check_duplicates(esncards):
-    codes = [i["code"] for i in esncards]
-    temp = []
-    duplicates = []
-    for i in codes:
-        if i not in temp:
-            temp.append(i)
-        else:
-            duplicates.append(i)
-    return duplicates
+def check_duplicates(cards: list[ESNCardEntry]):
+    """Sets duplicate = True to entries that have the same card_number
+
+    Per ESN Sea Battle policy, each participant must have their own ESNcard to get a discount
+    """
+    counts = Counter(c.card_number for c in cards)
+    for card in cards:
+        card.duplicate = counts[card.card_number] > 1
 
 
-def check_status(esncards):
-    active = []
-    expired = []
-    available = []
-    invalid = []
-    for i in esncards:
-        if i["status"] == "active":
-            active.append(i)
-        elif i["status"] == "expired":
-            expired.append(i)
-        elif i["status"] == "available":
-            available.append(i)
-        else:
-            invalid.append(i)
-    return active, expired, available, invalid
-
-
-def delete_wrong_answers(answers, expired, available, invalid, empty_cards, duplicates):
+def delete_wrong_answers(cards: list[ESNCardEntry]):
     """Delete ESNcard answers if not valid in order to allow new attempt"""
-    for _, answer in answers:
-        card_number = str(answer).strip().upper()
-        if (
-            card_number
-            in [i["code"] for i in expired]
-            + [i["code"] for i in available]
-            + [i["code"] for i in invalid]
-            + [i["code"] for i in empty_cards]
-            + duplicates
-        ):
-            answer.delete()
+    for card in cards:
+        if card.status != "active":
+            card.answer.delete()
 
 
-def log_card_states(
-    logger, esncards, empty_cards, active, expired, available, invalid, duplicates
-):
-    logger.debug(f"ESNcards: {esncards}")
-    logger.debug(f"Empty cards: {empty_cards}")
-    logger.debug(f"Duplicates: {duplicates}")
-    logger.debug(f"Active: {active}")
-    logger.debug(f"Expired: {expired}")
-    logger.debug(f"Available: {available}")
-    logger.debug(f"Invalid: {invalid}")
+def log_card_states(logger: Logger, cards: list[ESNCardEntry]):
+    for card in cards:
+        logger.debug(
+            "Name: %s, ESNcard number: %s, Status: %s",
+            card.name,
+            card.card_number,
+            card.status,
+        )
 
 
-def generate_error_message(
-    expired, available, invalid, empty_cards, duplicates, active
-):
+def generate_error_message(cards: list[ESNCardEntry]) -> str:
+    """Build an error message from a list of card entries
+
+    Returns one concatenated string with all the errors found and appends any valid ESNcards in the order.
+    Returns '' if no errors are found.
+    """
+    # Create status lists (bridge to keep the code below working for new ESNCardEntry class)
+    empty_cards = [c for c in cards if (c.status or "").lower() == "not found"]
+    expired = [c for c in cards if (c.status or "").lower() == "expired"]
+    available = [c for c in cards if (c.status or "").lower() == "available"]
+    invalid = [c for c in cards if (c.status or "").lower() == "invalid"]
+    active = [c for c in cards if (c.status or "").lower() == "active"]
+    duplicates = [c for c in cards if getattr(c, "duplicate", False)]
+
     error_msg = ""
     # If there are card numbers not returning a JSON response (typo)
     if len(empty_cards) == 1:
         card = empty_cards.pop()
         error_msg = (
             error_msg
-            + f"The following ESNcard does not exist: {card['code']} ({card['name']}). Please double check the ESNcard numbers for typos!"
+            + f"The following ESNcard does not exist: {card.card_number} ({card.name}). Please double check the ESNcard numbers for typos!"
         )
     elif len(empty_cards) > 1:
         card = empty_cards.pop()
-        msg = f"The following ESNcards don't exist: {card['code']} ({card['name']})"
+        msg = f"The following ESNcards don't exist: {card.card_number} ({card.name})"
         while len(empty_cards) > 0:
             card = empty_cards.pop()
-            msg = msg + f", {card['code']} ({card['name']})"
+            msg = msg + f", {card.card_number} ({card.name})"
         error_msg = (
             error_msg + msg + ". Please double check the ESNcard numbers for typos!"
         )
@@ -129,15 +124,15 @@ def generate_error_message(
     if len(expired) == 1:
         card = expired.pop()
         error_msg = error_msg + (
-            f"The following ESNcard: {card['code']} ({card['name']}), expired on {card['expiration-date']}. "
+            f"The following ESNcard: {card.card_number} ({card.name}), expired on {card.expiration_date}. "
             "You can purchase a new ESNcard from your ESN section."
         )
     elif len(expired) > 1:
         card = expired.pop()
-        msg = f"The following ESNcards have expired: {card['code']} ({card['name']})"
+        msg = f"The following ESNcards have expired: {card.card_number} ({card.name})"
         while len(expired) > 0:
             card = expired.pop()
-            msg = msg + f", {card['code']} ({card['name']})"
+            msg = msg + f", {card.card_number} ({card.name})"
         error_msg = (
             error_msg + msg + ". You can purchase a new ESNcard from your ESN section."
         )
@@ -145,15 +140,15 @@ def generate_error_message(
     if len(available) == 1:
         card = available.pop()
         error_msg = error_msg + (
-            f"The following ESNcard has not been registered yet: {card['code']} ({card['name']}). "
+            f"The following ESNcard has not been registered yet: {card.card_number} ({card.name}). "
             "Please add the card to your ESNcard account on https://esncard.org."
         )
     elif len(available) > 1:
         card = available.pop()
-        msg = f"The following ESNcards have not been registered yet: {card['code']} ({card['name']})"
+        msg = f"The following ESNcards have not been registered yet: {card.card_number} ({card.name})"
         while len(available) > 0:
             card = available.pop()
-            msg = msg + f", {card['code']} ({card['name']})"
+            msg = msg + f", {card.card_number} ({card.name})"
         error_msg = (
             error_msg
             + msg
@@ -164,14 +159,14 @@ def generate_error_message(
         card = invalid.pop()
         error_msg = (
             error_msg
-            + f"The following ESNcard is invalid: {card['code']} ({card['name']}). Contact us at support@seabattle.se for more information."
+            + f"The following ESNcard is invalid: {card.card_number} ({card.name}). Contact us at support@seabattle.se for more information."
         )
     elif len(invalid) > 1:
         card = invalid.pop()
-        msg = f"The following ESNcards are invalid: {card['code']} ({card['name']})"
+        msg = f"The following ESNcards are invalid: {card.card_number} ({card.name})"
         while len(invalid) > 0:
             card = invalid.pop()
-            msg = msg + f", {card['code']} ({card['name']})"
+            msg = msg + f", {card.card_number} ({card.name})"
         error_msg = (
             error_msg
             + msg
@@ -183,12 +178,13 @@ def generate_error_message(
             card = active.pop()
             error_msg = (
                 error_msg
-                + f"The following ESNcard is valid: {card['code']} ({card['name']})."
+                + f"The following ESNcard is valid: {card.card_number} ({card.name})."
             )
         elif len(active) > 1:
             card = active.pop()
-            msg = f"The following ESNcards are valid: {card['code']} ({card['name']})"
+            msg = f"The following ESNcards are valid: {card.card_number} ({card.name})"
             while len(active) > 0:
                 card = active.pop()
-                msg = msg + f", {card['code']} ({card['name']})"
+                msg = msg + f", {card.card_number} ({card.name})"
             error_msg = error_msg + msg + "."
+    return error_msg

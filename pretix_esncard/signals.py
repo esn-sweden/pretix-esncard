@@ -6,12 +6,11 @@ from pretix.base.signals import validate_cart
 
 from pretix_esncard.helpers import (
     check_duplicates,
-    check_status,
     delete_wrong_answers,
     generate_error_message,
-    get_cards,
     get_esncard_answers,
     log_card_states,
+    populate_cards,
 )
 
 
@@ -19,27 +18,15 @@ from pretix_esncard.helpers import (
 def esncard_validate_cart(**kwargs):
     logger = logging.getLogger(__name__)
 
-    answers = get_esncard_answers(**kwargs)
-    esncards, empty_cards = get_cards(answers)
+    cards = get_esncard_answers(**kwargs)
 
-    duplicates = check_duplicates(esncards)
-    active, expired, available, invalid = check_status(esncards)
+    populate_cards(cards)
+    check_duplicates(cards)
+    log_card_states(logger, cards)
+    delete_wrong_answers(cards)
 
-    log_card_states(
-        logger, esncards, empty_cards, active, expired, available, invalid, duplicates
-    )
+    error_msg = generate_error_message(cards)
 
-    delete_wrong_answers(
-        answers,
-        expired,
-        available,
-        invalid,
-        empty_cards,
-        duplicates,
-    )
-    error_msg = generate_error_message(
-        expired, available, invalid, empty_cards, duplicates, active
-    )
     if error_msg:
         logger.info(error_msg)
         raise CartError(
