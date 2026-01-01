@@ -1,5 +1,8 @@
 import logging
 from collections import Counter
+from collections.abc import Iterable
+
+from pretix.base.models import CartPosition
 
 from pretix_esncard.api import fetch_card
 from pretix_esncard.models import ESNCardEntry
@@ -7,18 +10,23 @@ from pretix_esncard.models import ESNCardEntry
 logger = logging.getLogger(__name__)
 
 
-def get_esncard_answers(**kwargs) -> list[ESNCardEntry]:
+def get_esncard_answers(positions: Iterable[CartPosition]) -> list[ESNCardEntry]:
     """Returns all the ESNcard answers for the current order
 
     For each position, checks for answers which have the identifier 'esncard'."""
     entries = []
-    for _, position in enumerate(kwargs["positions"]):
-        for answer in position.answers.all():
+    for position in positions:
+        # Note: Static type checking does not work here but you can see the attributes of a position here:
+        # https://docs.pretix.eu/dev/api/resources/carts.html#cart-position-resource
+        for answer in position.answers.all():  # type: ignore
             if answer.question.identifier == "esncard":
-                name = position.attendee_name
-                card_number = str(answer).strip().upper()
+                name = position.attendee_name or ""
+                card_number = answer.answer.strip().upper()
                 entry = ESNCardEntry(
-                    position, answer=answer, card_number=card_number, name=name
+                    position,
+                    answer=answer,
+                    card_number=card_number,
+                    name=name,
                 )
                 entries.append(entry)
     return entries

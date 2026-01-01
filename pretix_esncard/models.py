@@ -1,11 +1,13 @@
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Optional
+
+from pretix.base.models import CartPosition, QuestionAnswer
 
 
 @dataclass
 class ESNCardEntry:
-    position: Any
-    answer: Any
+    position: CartPosition
+    answer: QuestionAnswer
     card_number: str
     name: str
     status: Optional[str] = None
