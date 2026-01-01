@@ -1,11 +1,10 @@
+import logging
 from collections import Counter
-from logging import Logger
 
-import requests
-
+from pretix_esncard.api import fetch_card
 from pretix_esncard.models import ESNCardEntry
 
-API_URL = "https://esncard.org/services/1.0/card.json?code="
+logger = logging.getLogger(__name__)
 
 
 def get_esncard_answers(**kwargs) -> list[ESNCardEntry]:
@@ -31,21 +30,13 @@ def populate_cards(cards: list[ESNCardEntry]):
     The statuses can be active, expired or available (not registered)
     """
     for card in cards:
-        response = fetch_card(card.card_number)
-        if not response:
-            card.status = "not found"
+        data = fetch_card(card.card_number)
+        if data:
+            card.status = data["status"]
+            card.expiration_date = data["expiration-date"]
+            card.raw_api_data = data
         else:
-            card.status = response["status"]
-            card.expiration_date = response["expiration-date"]
-            card.raw_api_data = response
-
-
-def fetch_card(card_number):
-    url = API_URL + card_number
-    response = requests.get(url).json()
-    if len(response) == 1:
-        response = response.pop()
-    return response
+            card.status = "not found"
 
 
 def check_duplicates(cards: list[ESNCardEntry]):
@@ -65,7 +56,7 @@ def delete_wrong_answers(cards: list[ESNCardEntry]):
             card.answer.delete()
 
 
-def log_card_states(logger: Logger, cards: list[ESNCardEntry]):
+def log_card_states(cards: list[ESNCardEntry]):
     for card in cards:
         logger.debug(
             "Name: %s, ESNcard number: %s, Status: %s",
@@ -87,7 +78,7 @@ def generate_error_message(cards: list[ESNCardEntry]) -> str:
     available = [c for c in cards if (c.status or "").lower() == "available"]
     invalid = [c for c in cards if (c.status or "").lower() == "invalid"]
     active = [c for c in cards if (c.status or "").lower() == "active"]
-    duplicates = [c for c in cards if getattr(c, "duplicate", False)]
+    duplicates = [c for c in cards if getattr(c, "duplicate", True)]
 
     error_msg = ""
     # If there are card numbers not returning a JSON response (typo)
