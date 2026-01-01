@@ -25,8 +25,8 @@ def esncard_validate_cart(positions: Iterable[CartPosition], **kwargs):
 
     try:
         populate_cards(cards)
-    except ExternalAPIError:
-        logger.error("ESNcard validation failed due to API error")
+    except ExternalAPIError as e:
+        logger.error("ESNcard validation failed due to API error: %s", e)
         raise CartError(
             "We could not verify your ESNcard due to a temporary service issue. Please try again later."
             "If the problem persists, please contact support@seabattle.se."

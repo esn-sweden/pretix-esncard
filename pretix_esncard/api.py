@@ -1,56 +1,99 @@
 import logging
 import time
+from typing import Optional
 
 import requests
 from django.conf import settings
+from requests import JSONDecodeError, Response
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 CACHE_TTL = 300  # seconds
 
 logger = logging.getLogger(__name__)
-_cache: dict[str, tuple[float, dict]] = {}
+_cache: dict[str, tuple[float, Optional[dict]]] = {}
 
 
 class ExternalAPIError(Exception):
     pass
 
 
-def fetch_card(card_number: str) -> dict:
-    """Fetches card data from the ESNcard API server
+def fetch_card(card_number: str) -> dict | None:
+    """
+    Fetch card data from the ESNcard API server.
 
-    Implements a cache and raises ExternalAPIError if the operation fails
+    Returns:
+        dict | None: Parsed ESNcard data, or None if the card does not exist.
+
+    Raises:
+        ExternalAPIError: If the API request or response is invalid.
     """
     url = f"https://esncard.org/services/1.0/card.json?code={card_number}"
     now = time.time()
 
     # Return cached result if the ESNcard number was tried recently
     if card_number in _cache:
-        ts, data = _cache[card_number]
+        ts, cached = _cache[card_number]
         if now - ts < CACHE_TTL:
-            return data
+            return cached
 
     try:
         response = session.get(url, timeout=(2, 6))
         response.raise_for_status()
-        data = response.json()
 
     except Exception as e:
-        logger.exception("ESNcard API request failed for card %s", card_number)
-        raise ExternalAPIError(f"Unexpected error contacting ESNcard API: {e}")
+        logger.error(
+            "ESNcard API request failed for card %s (URL: %s)",
+            card_number,
+            url,
+            exc_info=True,
+        )
+        raise ExternalAPIError("Failed to contact ESNcard API") from e
 
-    # Normalize: Make sure the API returns exactly one dict (ESNcard item)
-    if isinstance(data, list):
-        if len(data) == 1:
-            data = data[0]
-        else:
-            raise ExternalAPIError(f"Unexpected list length from API: {len(data)}")
-
-    if not isinstance(data, dict):
-        raise ExternalAPIError(f"Unexpected API response type: {type(data)}")
+    try:
+        data = validate_response(response)
+    except ExternalAPIError:
+        raise
 
     _cache[card_number] = (now, data)
     return data
+
+
+def validate_response(response: Response) -> dict | None:
+    """
+    Validate ESNcard API response
+
+    Returns:
+        dict | None: Parsed card data, or None if card does not exist.
+
+    Raises:
+        ExternalAPIError: If the response format is invalid.
+    """
+    try:
+        data = response.json()
+    except JSONDecodeError as e:
+        logger.exception("ESNcard API returned invalid JSON: %r", response.text)
+        raise ExternalAPIError("ESNcard API returned invalid JSON") from e
+
+    if not isinstance(data, list):
+        logger.exception("Unexpected ESNcard API response type: %r", data)
+        raise ExternalAPIError("Unexpected ESNcard API response format")
+
+    # Empty list → card does not exist
+    if len(data) == 0:
+        return None
+
+    # Exactly one item → valid
+    if len(data) == 1:
+        item = data[0]
+        if not isinstance(item, dict):
+            logger.exception("ESNcard API returned non-dict item: %r", item)
+            raise ExternalAPIError("Invalid ESNcard API item format")
+        return item
+
+    # More than one item → API bug
+    logger.exception("ESNcard API returned multiple items: %r", data)
+    raise ExternalAPIError("ESNcard API returned multiple items")
 
 
 def create_session() -> requests.Session:
