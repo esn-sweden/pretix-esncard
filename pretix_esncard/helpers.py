@@ -119,7 +119,7 @@ def generate_error_message(cards: list[ESNCardEntry]) -> str:
     elif len(duplicates) > 1:
         code = duplicates.pop()
         msg = f"The following ESNcard numbers were used more than once: {code}"
-        while len(empty_cards) > 0:
+        while len(duplicates) > 0:
             code = duplicates.pop()
             msg = msg + f", {code}"
         error_msg = error_msg + msg + ". Note that the ESNcard discount is personal!"
