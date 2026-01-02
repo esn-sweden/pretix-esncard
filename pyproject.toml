@@ -3,15 +3,17 @@ name = "pretix-esncard"
 dynamic = ["version"]
 description = "A plugin for pretix allowing automated validation of ESNcard numbers"
 readme = "README.md"
+requires-python = ">=3.9"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
-keywords = ["pretix"]
+keywords = ["pretix", "esncard", "esn", "plugin", "validation"]
 authors = [
     { name = "Mårten Lundström", email = "marten.lundstrom@esnsweden.org" },
+    { name = "Elias Jollivet", email = "wpa@esnsweden.org" },
 ]
 maintainers = [{ name = "Elias Jollivet", email = "wpa@esnsweden.org" }]
 
-dependencies = ["pretix", "django", "requests"]
+dependencies = ["requests>=2.32,<3"]
 
 [project.entry-points."pretix.plugin"]
 pretix-esncard = "pretix_esncard:PretixPluginMeta"
