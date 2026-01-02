@@ -57,6 +57,13 @@ Optionally write a help text such as the following:
 
 The ESNcard number is validated against the ESNcard API during checkout and the customer is notified of any errors.
 
+The validation fails if the entered ESNcard number:
+
+* is not found
+* is expired
+* is unregistered (the user must register their card on [esncard.org](https://esncard.org))
+* is used several times in the same order (each person must have their own ESNcard)
+
 ### Cloudflare bypass token
 
 To avoid getting blocked by Cloudflare when sending many requests, you may ask the WPA of ESN International for a bypass token which you can configure in the global Pretix settings. You can access the global settings by enabling admin mode and look for the option in the bottom of the left sidebar.

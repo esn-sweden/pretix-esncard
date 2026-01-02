@@ -75,119 +75,32 @@ def log_card_states(cards: list[ESNCardEntry]):
 
 
 def generate_error_message(cards: list[ESNCardEntry]) -> str:
-    """Build an error message from a list of card entries
+    """Returns a concatenated string of all validation errors.
 
-    Returns one concatenated string with all the errors found and appends any valid ESNcards in the order.
-    Returns '' if no errors are found.
+    Returns "" if no errors are found.
     """
-    # Create status lists (bridge to keep the code below working for new ESNCardEntry class)
-    empty_cards = [c for c in cards if c.status == "not found"]
-    expired = [c for c in cards if c.status == "expired"]
-    available = [c for c in cards if c.status == "available"]
-    active = [c for c in cards if c.status == "active"]
-    invalid = [
-        c
-        for c in cards
-        if c.status not in ("available", "expired", "not found", "active")
-    ]
-    duplicates = [c for c in cards if c.duplicate]
+    status_msgs = {
+        "not found": "not found – check for typos.",
+        "available": "not registered – register at esncard.org.",
+        "expired": "expired on {date} – contact your local ESN section to get a new card.",
+        "other": "is invalid – contact support@seabattle.se",
+    }
 
-    error_msg = ""
-    # If there are card numbers not returning a JSON response (typo)
-    if len(empty_cards) == 1:
-        card = empty_cards.pop()
-        error_msg = (
-            error_msg
-            + f"The following ESNcard does not exist: {card.card_number} ({card.name}). Please double check the ESNcard numbers for typos!"
+    msgs = []
+    duplicates = set()
+    for card in cards:
+        info = f"ESNcard for {card.name} ({card.card_number}): "
+        msg = status_msgs.get(card.status, status_msgs["other"])
+        if "{date}" in msg:
+            msg = msg.format(date=card.expiration_date)
+        msgs.append(info + msg)
+
+        if card.duplicate:
+            duplicates.add(card.card_number)
+
+    if duplicates:
+        nums = ", ".join(duplicates)
+        msgs.append(
+            f"Duplicated ESNcards: {nums} – each person must have a unique ESNcard."
         )
-    elif len(empty_cards) > 1:
-        card = empty_cards.pop()
-        msg = f"The following ESNcards don't exist: {card.card_number} ({card.name})"
-        while len(empty_cards) > 0:
-            card = empty_cards.pop()
-            msg = msg + f", {card.card_number} ({card.name})"
-        error_msg = (
-            error_msg + msg + ". Please double check the ESNcard numbers for typos!"
-        )
-    # If there are duplicate card numbers in the card
-    if len(duplicates) == 1:
-        code = duplicates.pop()
-        error_msg = (
-            error_msg
-            + f"The following ESNcard number was used more than once: {code}. Note that the ESNcard discount is personal!"
-        )
-    elif len(duplicates) > 1:
-        code = duplicates.pop()
-        msg = f"The following ESNcard numbers were used more than once: {code}"
-        while len(duplicates) > 0:
-            code = duplicates.pop()
-            msg = msg + f", {code}"
-        error_msg = error_msg + msg + ". Note that the ESNcard discount is personal!"
-    # If there are expired card numbers in the cart
-    if len(expired) == 1:
-        card = expired.pop()
-        error_msg = error_msg + (
-            f"The following ESNcard: {card.card_number} ({card.name}), expired on {card.expiration_date}. "
-            "You can purchase a new ESNcard from your ESN section."
-        )
-    elif len(expired) > 1:
-        card = expired.pop()
-        msg = f"The following ESNcards have expired: {card.card_number} ({card.name})"
-        while len(expired) > 0:
-            card = expired.pop()
-            msg = msg + f", {card.card_number} ({card.name})"
-        error_msg = (
-            error_msg + msg + ". You can purchase a new ESNcard from your ESN section."
-        )
-    # If there are unregistered card numbers in the cart
-    if len(available) == 1:
-        card = available.pop()
-        error_msg = error_msg + (
-            f"The following ESNcard has not been registered yet: {card.card_number} ({card.name}). "
-            "Please add the card to your ESNcard account on https://esncard.org."
-        )
-    elif len(available) > 1:
-        card = available.pop()
-        msg = f"The following ESNcards have not been registered yet: {card.card_number} ({card.name})"
-        while len(available) > 0:
-            card = available.pop()
-            msg = msg + f", {card.card_number} ({card.name})"
-        error_msg = (
-            error_msg
-            + msg
-            + ". Please add the card to your ESNcard account on https://esncard.org."
-        )
-    # If there are card numbers that for some other reason are not valid
-    if len(invalid) == 1:
-        card = invalid.pop()
-        error_msg = (
-            error_msg
-            + f"The following ESNcard is invalid: {card.card_number} ({card.name}). Contact us at support@seabattle.se for more information."
-        )
-    elif len(invalid) > 1:
-        card = invalid.pop()
-        msg = f"The following ESNcards are invalid: {card.card_number} ({card.name})"
-        while len(invalid) > 0:
-            card = invalid.pop()
-            msg = msg + f", {card.card_number} ({card.name})"
-        error_msg = (
-            error_msg
-            + msg
-            + ". Contact us at support@seabattle.se for more information."
-        )
-    # If there are any invalid ESNcards in the cart, append at the end any other card numbers that may still be valid
-    if error_msg != "":
-        if len(active) == 1:
-            card = active.pop()
-            error_msg = (
-                error_msg
-                + f"The following ESNcard is valid: {card.card_number} ({card.name})."
-            )
-        elif len(active) > 1:
-            card = active.pop()
-            msg = f"The following ESNcards are valid: {card.card_number} ({card.name})"
-            while len(active) > 0:
-                card = active.pop()
-                msg = msg + f", {card.card_number} ({card.name})"
-            error_msg = error_msg + msg + "."
-    return error_msg
+    return " ".join(msgs)
