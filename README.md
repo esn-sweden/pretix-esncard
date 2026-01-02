@@ -37,7 +37,7 @@ Go to **Products > Questions** and select **"Create a new question"**
 
 * **Question**: "ESNcard number"
 * **Type**: Text (one line)
-* **Products**: Select all product which have an ESNcard discount
+* **Products**: Select all products with an ESNcard discount
 * **Check** "required question"
 
 Go to the **Advanced** tab
