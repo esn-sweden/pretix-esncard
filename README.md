@@ -42,12 +42,6 @@ Go to **Products > Questions** and select **"Create a new question"**
 
 Go to the **Advanced** tab
 
-Optionally write a help text such as the following:
-
-> If you have issues proceeding due to your ESNcard, please make sure it is registered on ESNcard.org and that you type it correctly.
->
-> If you just registered your card, it may take up to 4 hours until it shows up in our system!
-
 **Internal identifier**: `esncard`
 
 > [!NOTE]
@@ -56,6 +50,13 @@ Optionally write a help text such as the following:
 ### Validation
 
 The ESNcard number is validated against the ESNcard API during checkout and the customer is notified of any errors.
+
+The validation fails if the entered ESNcard number:
+
+* is not found
+* is expired
+* is unregistered (the user must register their card on [esncard.org](https://esncard.org))
+* is used several times in the same order (each person must have their own ESNcard)
 
 ### Cloudflare bypass token
 

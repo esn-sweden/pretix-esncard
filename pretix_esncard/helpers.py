@@ -1,193 +1,133 @@
 import logging
-from collections import Counter
-from collections.abc import Iterable
 
-from pretix.base.models import CartPosition
+from django.core.exceptions import ValidationError
+from django.http import HttpRequest
+from pretix.base.models import CartPosition, OrderPosition, Question
 
-from pretix_esncard.api import fetch_card
-from pretix_esncard.models import ESNCardEntry
+from pretix_esncard.api import ExternalAPIError, fetch_card
 
 logger = logging.getLogger(__name__)
 
 
-def get_esncard_answers(positions: Iterable[CartPosition]) -> list[ESNCardEntry]:
-    """Returns all the ESNcard answers for the current order
+def val_esncard(
+    esncard_number: str,
+    question: Question,
+    position: CartPosition | OrderPosition,
+    request: HttpRequest,
+):
+    if not esncard_number:
+        return
 
-    For each position, checks for answers which have the identifier 'esncard'."""
-    entries = []
-    for position in positions:
-        # Note: Static type checking does not work here but you can see the attributes of a position here:
-        # https://docs.pretix.eu/dev/api/resources/carts.html#cart-position-resource
-        for answer in position.answers.all():  # type: ignore
-            if answer.question.identifier == "esncard":
-                name = position.attendee_name or ""
-                card_number = answer.answer.strip().upper()
-                entry = ESNCardEntry(
-                    position,
-                    answer=answer,
-                    card_number=card_number,
-                    name=name,
-                )
-                entries.append(entry)
-    return entries
-
-
-def populate_cards(cards: list[ESNCardEntry]):
-    """Call the ESNcard API and populate the ESNCardEntry with this information
-
-    The statuses can be active, expired or available (not registered)
-    """
-    for card in cards:
-        data = fetch_card(card.card_number)
-        if data:
-            card.status = data["status"]
-            card.expiration_date = data["expiration-date"]
-            card.raw_api_data = data
-        else:
-            card.status = "not found"
-
-
-def check_duplicates(cards: list[ESNCardEntry]):
-    """Sets duplicate = True to entries that have the same card_number
-
-    Per ESN Sea Battle policy, each participant must have their own ESNcard to get a discount
-    """
-    counts = Counter(c.card_number for c in cards)
-    for card in cards:
-        card.duplicate = counts[card.card_number] > 1
-
-
-def delete_wrong_answers(cards: list[ESNCardEntry]):
-    """Delete ESNcard answers if not valid in order to allow new attempt"""
-    for card in cards:
-        if card.status != "active":
-            card.answer.delete()
-
-
-def log_card_states(cards: list[ESNCardEntry]):
-    for card in cards:
-        logger.debug(
-            "Name: %s, ESNcard number: %s, Status: %s",
-            card.name,
-            card.card_number,
-            card.status,
+    if is_duplicate(esncard_number, question, position, request):
+        raise ValidationError(
+            "Duplicate number. Each person must have a unique ESNcard."
         )
 
+    try:
+        data = fetch_card(esncard_number)
+    except ExternalAPIError:
+        raise ValidationError(
+            "Verification is temporarily unavailable. Please try again later. If the issue persists, contact support@seabattle.se"
+        )
 
-def generate_error_message(cards: list[ESNCardEntry]) -> str:
-    """Build an error message from a list of card entries
+    if not data:
+        raise ValidationError(
+            "Couldn't find an ESNcard with this number, please check for typos."
+        )
 
-    Returns one concatenated string with all the errors found and appends any valid ESNcards in the order.
-    Returns '' if no errors are found.
-    """
-    # Create status lists (bridge to keep the code below working for new ESNCardEntry class)
-    empty_cards = [c for c in cards if c.status == "not found"]
-    expired = [c for c in cards if c.status == "expired"]
-    available = [c for c in cards if c.status == "available"]
-    active = [c for c in cards if c.status == "active"]
-    invalid = [
-        c
-        for c in cards
-        if c.status not in ("available", "expired", "not found", "active")
-    ]
-    duplicates = [c for c in cards if c.duplicate]
-
-    error_msg = ""
-    # If there are card numbers not returning a JSON response (typo)
-    if len(empty_cards) == 1:
-        card = empty_cards.pop()
-        error_msg = (
-            error_msg
-            + f"The following ESNcard does not exist: {card.card_number} ({card.name}). Please double check the ESNcard numbers for typos!"
-        )
-    elif len(empty_cards) > 1:
-        card = empty_cards.pop()
-        msg = f"The following ESNcards don't exist: {card.card_number} ({card.name})"
-        while len(empty_cards) > 0:
-            card = empty_cards.pop()
-            msg = msg + f", {card.card_number} ({card.name})"
-        error_msg = (
-            error_msg + msg + ". Please double check the ESNcard numbers for typos!"
-        )
-    # If there are duplicate card numbers in the card
-    if len(duplicates) == 1:
-        code = duplicates.pop()
-        error_msg = (
-            error_msg
-            + f"The following ESNcard number was used more than once: {code}. Note that the ESNcard discount is personal!"
-        )
-    elif len(duplicates) > 1:
-        code = duplicates.pop()
-        msg = f"The following ESNcard numbers were used more than once: {code}"
-        while len(duplicates) > 0:
-            code = duplicates.pop()
-            msg = msg + f", {code}"
-        error_msg = error_msg + msg + ". Note that the ESNcard discount is personal!"
-    # If there are expired card numbers in the cart
-    if len(expired) == 1:
-        card = expired.pop()
-        error_msg = error_msg + (
-            f"The following ESNcard: {card.card_number} ({card.name}), expired on {card.expiration_date}. "
-            "You can purchase a new ESNcard from your ESN section."
-        )
-    elif len(expired) > 1:
-        card = expired.pop()
-        msg = f"The following ESNcards have expired: {card.card_number} ({card.name})"
-        while len(expired) > 0:
-            card = expired.pop()
-            msg = msg + f", {card.card_number} ({card.name})"
-        error_msg = (
-            error_msg + msg + ". You can purchase a new ESNcard from your ESN section."
-        )
-    # If there are unregistered card numbers in the cart
-    if len(available) == 1:
-        card = available.pop()
-        error_msg = error_msg + (
-            f"The following ESNcard has not been registered yet: {card.card_number} ({card.name}). "
-            "Please add the card to your ESNcard account on https://esncard.org."
-        )
-    elif len(available) > 1:
-        card = available.pop()
-        msg = f"The following ESNcards have not been registered yet: {card.card_number} ({card.name})"
-        while len(available) > 0:
-            card = available.pop()
-            msg = msg + f", {card.card_number} ({card.name})"
-        error_msg = (
-            error_msg
-            + msg
-            + ". Please add the card to your ESNcard account on https://esncard.org."
-        )
-    # If there are card numbers that for some other reason are not valid
-    if len(invalid) == 1:
-        card = invalid.pop()
-        error_msg = (
-            error_msg
-            + f"The following ESNcard is invalid: {card.card_number} ({card.name}). Contact us at support@seabattle.se for more information."
-        )
-    elif len(invalid) > 1:
-        card = invalid.pop()
-        msg = f"The following ESNcards are invalid: {card.card_number} ({card.name})"
-        while len(invalid) > 0:
-            card = invalid.pop()
-            msg = msg + f", {card.card_number} ({card.name})"
-        error_msg = (
-            error_msg
-            + msg
-            + ". Contact us at support@seabattle.se for more information."
-        )
-    # If there are any invalid ESNcards in the cart, append at the end any other card numbers that may still be valid
-    if error_msg != "":
-        if len(active) == 1:
-            card = active.pop()
-            error_msg = (
-                error_msg
-                + f"The following ESNcard is valid: {card.card_number} ({card.name})."
+    status = data.get("status")
+    match status:
+        case "active":
+            return
+        case "available":
+            raise ValidationError(
+                "The ESNcard is not registered, please register on esncard.org. "
+                "If you recently registered your card, it may take take a few hours before it's updated in the systems"
             )
-        elif len(active) > 1:
-            card = active.pop()
-            msg = f"The following ESNcards are valid: {card.card_number} ({card.name})"
-            while len(active) > 0:
-                card = active.pop()
-                msg = msg + f", {card.card_number} ({card.name})"
-            error_msg = error_msg + msg + "."
-    return error_msg
+        case "expired":
+            raise ValidationError(
+                f"The ESNcard expired on {data.get('expiration-date', '?')}"
+            )
+        case _:
+            raise ValidationError(
+                "ESNcard validation failed, please contact support@seabattle.se"
+            )
+
+
+def get_esncard_from_post(
+    question: Question, pos: CartPosition | OrderPosition, request: HttpRequest
+):
+    field_name = f"{pos.id}-question_{question.id}"
+    field = request.POST.get(field_name)
+    if field:
+        return field
+    else:
+        logger.warning(
+            "Could not get esncard field from POST. Tried to get: %s From: %s",
+            field_name,
+            request.POST,
+        )
+    return request.POST.get(field_name)
+
+
+def is_duplicate(
+    card_num: str,
+    question: Question,
+    position: CartPosition | OrderPosition,
+    request: HttpRequest,
+) -> bool:
+    card_num = card_num.strip().upper()
+
+    # Case 1: Checkout flow → CartPosition
+    if isinstance(position, CartPosition):
+        positions = CartPosition.objects.filter(
+            event=position.event, cart_id=position.cart_id
+        ).exclude(pk=position.pk)
+
+    # Case 2: Editing an existing order → OrderPosition
+    elif isinstance(position, OrderPosition):
+        positions = position.order.positions.exclude(pk=position.pk)
+
+    # Fallback (should never happen)
+    else:
+        logger.warning(
+            "Pretix signal returned a position that was neither CartPosition nor OrderPosition"
+        )
+        return False
+
+    if positions.count() < 1:
+        return False
+
+    related = []
+    for pos in positions:
+        logger.debug(position.attendee_name)
+        # Get new values from POST as otherwise you will compare to the existing data in the db which may cause errors
+        # if the answers have been modified
+        new_val = get_esncard_from_post(question, pos, request)
+        if new_val:
+            related.append(new_val.strip().upper())
+        else:
+            logger.debug("Didn't get post data")
+            for answer in pos.answers.all():  # type: ignore
+                if answer.question.identifier == "esncard":
+                    related.append(answer.answer.strip().upper())
+
+    return card_num in related
+
+
+def get_esncard_question(position: CartPosition | OrderPosition) -> Question | None:
+    for question in position.item.questions.all():
+        if question.identifier == "esncard":
+            return question
+    return None
+
+
+def log_val_err(
+    esncard_number: str, position: CartPosition | OrderPosition, e: ValidationError
+):
+    logger.info(
+        "ESNcard validation failed. Name: %s, ESNcard number: %s, Error: %s",
+        position.attendee_name,
+        esncard_number,
+        str(e),
+    )

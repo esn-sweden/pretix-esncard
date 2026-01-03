@@ -5,7 +5,7 @@ from typing import Optional
 import requests
 from django.conf import settings
 from pretix.base.settings import GlobalSettingsObject
-from requests import JSONDecodeError, Response
+from requests import JSONDecodeError, RequestException, Response
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -42,14 +42,14 @@ def fetch_card(card_number: str) -> dict | None:
         response = session.get(url, timeout=(2, 6))
         response.raise_for_status()
 
-    except Exception as e:
+    except RequestException as e:
         logger.error(
             "ESNcard API request failed for card %s (URL: %s)",
             card_number,
             url,
             exc_info=True,
         )
-        raise ExternalAPIError("Failed to contact ESNcard API") from e
+        raise ExternalAPIError("Error contacting ESNcard API") from e
 
     try:
         data = validate_response(response)
