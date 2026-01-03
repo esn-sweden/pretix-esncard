@@ -120,3 +120,14 @@ def get_esncard_question(position: CartPosition | OrderPosition) -> Question | N
         if question.identifier == "esncard":
             return question
     return None
+
+
+def log_val_err(
+    esncard_number: str, position: CartPosition | OrderPosition, e: ValidationError
+):
+    logger.info(
+        "ESNcard validation failed. Name: %s, ESNcard number: %s, Error: %s",
+        position.attendee_name,
+        esncard_number,
+        str(e),
+    )
