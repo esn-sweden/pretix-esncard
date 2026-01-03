@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.http import HttpRequest
 from pretix.base.models import CartPosition, OrderPosition, Question
 
-from pretix_esncard.api import fetch_card
+from pretix_esncard.api import ExternalAPIError, fetch_card
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ def val_esncard(
 
     try:
         data = fetch_card(esncard_number)
-    except Exception:
+    except ExternalAPIError:
         raise ValidationError(
             "Verification is temporarily unavailable. Please try again later. If the issue persists, contact support@seabattle.se"
         )
