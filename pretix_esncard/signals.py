@@ -1,49 +1,36 @@
 import logging
 from collections import OrderedDict
-from collections.abc import Iterable
 
+from django.core.exceptions import ValidationError
 from django.dispatch import receiver
-from pretix.base.models import CartPosition
-from pretix.base.services.cart import CartError
-from pretix.base.signals import register_global_settings, validate_cart
+from pretix.base.signals import register_global_settings
+from pretix.presale.signals import question_form_fields_overrides
 
-from pretix_esncard.api import ExternalAPIError
 from pretix_esncard.forms import ESNCardSettingsForm
-from pretix_esncard.helpers import (
-    check_duplicates,
-    delete_wrong_answers,
-    generate_error_message,
-    get_esncard_answers,
-    log_card_states,
-    populate_cards,
-)
+from pretix_esncard.helpers import get_esncard_question, val_esncard
 
 logger = logging.getLogger(__name__)
 
 
-@receiver(validate_cart, dispatch_uid="esncard_validate_cart")
-def esncard_validate_cart(positions: Iterable[CartPosition], **kwargs):
-    cards = get_esncard_answers(positions)
+@receiver(question_form_fields_overrides, dispatch_uid="esncard_form_field")
+def override_esncard_question(sender, position, request, **kwargs):
+    question = get_esncard_question(position)
+    if not question:
+        return {}
 
-    try:
-        populate_cards(cards)
-    except ExternalAPIError as e:
-        logger.error("ESNcard validation failed due to API error: %s", e)
-        raise CartError(
-            "We could not verify your ESNcard due to a temporary service issue. Please try again later."
-            "If the problem persists, please contact support@seabattle.se."
-        )
+    def validate_esncard_field(esncard_number: str):
+        try:
+            val_esncard(esncard_number, question, position, request)
+        except ValidationError as e:
+            logger.debug(
+                "ESNcard validation failed. Name: %s, ESNcard number: %s, Error: %s",
+                position.attendee_name,
+                esncard_number,
+                str(e),
+            )
+            raise
 
-    check_duplicates(cards)
-    log_card_states(cards)
-
-    error_msg = generate_error_message(cards)
-
-    if error_msg:
-        # Post error message (and return to first step of checkout)
-        logger.info(error_msg)
-        delete_wrong_answers(cards)
-        raise CartError(error_msg)
+    return {question.identifier: {"validators": [validate_esncard_field]}}
 
 
 @receiver(register_global_settings, dispatch_uid="esncard_global_settings")
