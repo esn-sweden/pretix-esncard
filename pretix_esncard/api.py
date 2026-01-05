@@ -19,6 +19,7 @@ CACHE_TTL = 300  # seconds
 
 logger = logging.getLogger(__name__)
 _cache: dict[str, tuple[float, ESNCard | None]] = {}
+_session = None
 
 
 def fetch_card(card_number: str) -> ESNCard | None:
@@ -41,7 +42,7 @@ def fetch_card(card_number: str) -> ESNCard | None:
             return cached
 
     try:
-        response = session.get(url, timeout=(2, 6))
+        response = get_session().get(url, timeout=(2, 6))
         response.raise_for_status()
         data = response.json()
     except (RequestException, JSONDecodeError) as e:
@@ -94,5 +95,8 @@ def create_session() -> requests.Session:
     return session
 
 
-# Reusable session for all ESNcard lookups
-session = create_session()
+def get_session():
+    global _session
+    if _session is None:
+        _session = create_session()
+    return _session
