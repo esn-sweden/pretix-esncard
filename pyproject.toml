@@ -13,7 +13,7 @@ authors = [
 ]
 maintainers = [{ name = "Elias Jollivet", email = "wpa@esnsweden.org" }]
 
-dependencies = ["requests>=2.32,<3"]
+dependencies = ["requests>=2.32,<3", "pydantic>=2.12,<3"]
 
 [project.entry-points."pretix.plugin"]
 pretix-esncard = "pretix_esncard:PretixPluginMeta"

@@ -1,10 +1,10 @@
 import logging
-
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest
 from pretix.base.models import CartPosition, OrderPosition, Question
 
 from pretix_esncard.api import ExternalAPIError, fetch_card
+from pretix_esncard.models import CardStatus
 
 logger = logging.getLogger(__name__)
 
@@ -24,34 +24,27 @@ def val_esncard(
         )
 
     try:
-        data = fetch_card(esncard_number)
+        esncard = fetch_card(esncard_number)
     except ExternalAPIError:
         raise ValidationError(
             "Verification is temporarily unavailable. Please try again later. If the issue persists, contact support@seabattle.se"
         )
 
-    if not data:
+    if not esncard:
         raise ValidationError(
             "Couldn't find an ESNcard with this number, please check for typos."
         )
 
-    status = data.get("status")
-    match status:
-        case "active":
+    match esncard.status:
+        case CardStatus.ACTIVE:
             return
-        case "available":
+        case CardStatus.AVAILABLE:
             raise ValidationError(
                 "The ESNcard is not registered, please register on esncard.org. "
                 "If you recently registered your card, it may take take a few hours before it's updated in the systems"
             )
-        case "expired":
-            raise ValidationError(
-                f"The ESNcard expired on {data.get('expiration-date', '?')}"
-            )
-        case _:
-            raise ValidationError(
-                "ESNcard validation failed, please contact support@seabattle.se"
-            )
+        case CardStatus.EXPIRED:
+            raise ValidationError(f"The ESNcard expired on {esncard.expiration_date}")
 
 
 def get_esncard_from_post(
@@ -95,7 +88,7 @@ def is_duplicate(
         )
         return False
 
-    if positions.count() < 1:
+    if positions.count() == 0:
         return False
 
     related = []
@@ -107,7 +100,7 @@ def is_duplicate(
         if new_val:
             related.append(new_val.strip().upper())
         else:
-            logger.debug("Didn't get post data")
+            logger.debug("Error getting POST data")
             for answer in pos.answers.all():  # type: ignore
                 if answer.question.identifier == "esncard":
                     related.append(answer.answer.strip().upper())

@@ -1,5 +1,4 @@
 from collections import OrderedDict
-
 from django.core.exceptions import ValidationError
 from django.dispatch import receiver
 from pretix.base.signals import register_global_settings

@@ -1,30 +1,32 @@
 import logging
-import time
-from typing import Optional
-
 import requests
+import time
 from django.conf import settings
 from pretix.base.settings import GlobalSettingsObject
-from requests import JSONDecodeError, RequestException, Response
+from pydantic import ValidationError
+from requests import JSONDecodeError, RequestException
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-CACHE_TTL = 300  # seconds
-
-logger = logging.getLogger(__name__)
-_cache: dict[str, tuple[float, Optional[dict]]] = {}
+from pretix_esncard.models import ESNCard, ESNCardResponse
 
 
 class ExternalAPIError(Exception):
     pass
 
 
-def fetch_card(card_number: str) -> dict | None:
+CACHE_TTL = 300  # seconds
+
+logger = logging.getLogger(__name__)
+_cache: dict[str, tuple[float, ESNCard | None]] = {}
+
+
+def fetch_card(card_number: str) -> ESNCard | None:
     """
     Fetch card data from the ESNcard API server.
 
     Returns:
-        dict | None: Parsed ESNcard data, or None if the card does not exist.
+        ESNCard | None: Parsed ESNcard data, or None if the card does not exist.
 
     Raises:
         ExternalAPIError: If the API request or response is invalid.
@@ -41,60 +43,25 @@ def fetch_card(card_number: str) -> dict | None:
     try:
         response = session.get(url, timeout=(2, 6))
         response.raise_for_status()
-
-    except RequestException as e:
+        data = response.json()
+    except (RequestException, JSONDecodeError) as e:
         logger.error(
-            "ESNcard API request failed for card %s (URL: %s)",
+            "ESNcard API request failed for card %s (URL: %s) with error: %s",
             card_number,
             url,
-            exc_info=True,
+            e,
         )
-        raise ExternalAPIError("Error contacting ESNcard API") from e
+        raise ExternalAPIError("Error contacting ESNcard API")
 
     try:
-        data = validate_response(response)
-    except ExternalAPIError:
-        raise
+        esncards = ESNCardResponse.model_validate(data).root
+    except ValidationError as e:
+        logger.error("API returned incorrect data model: %s", e.json())
+        raise ExternalAPIError("API returned wrongly formatted data")
 
-    _cache[card_number] = (now, data)
-    return data
-
-
-def validate_response(response: Response) -> dict | None:
-    """
-    Validate ESNcard API response
-
-    Returns:
-        dict | None: Parsed card data, or None if card does not exist.
-
-    Raises:
-        ExternalAPIError: If the response format is invalid.
-    """
-    try:
-        data = response.json()
-    except JSONDecodeError as e:
-        logger.exception("ESNcard API returned invalid JSON: %r", response.text)
-        raise ExternalAPIError("ESNcard API returned invalid JSON") from e
-
-    if not isinstance(data, list):
-        logger.exception("Unexpected ESNcard API response type: %r", data)
-        raise ExternalAPIError("Unexpected ESNcard API response format")
-
-    # Empty list → card does not exist
-    if len(data) == 0:
-        return None
-
-    # Exactly one item → valid
-    if len(data) == 1:
-        item = data[0]
-        if not isinstance(item, dict):
-            logger.exception("ESNcard API returned non-dict item: %r", item)
-            raise ExternalAPIError("Invalid ESNcard API item format")
-        return item
-
-    # More than one item → API bug
-    logger.exception("ESNcard API returned multiple items: %r", data)
-    raise ExternalAPIError("ESNcard API returned multiple items")
+    esncard = esncards[0] if esncards else None
+    _cache[card_number] = (now, esncard)
+    return esncard
 
 
 def get_cloudflare_token() -> str:
