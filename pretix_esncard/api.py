@@ -10,6 +10,8 @@ from urllib3.util.retry import Retry
 
 from pretix_esncard.models import ESNCard, ESNCardResponse
 
+from . import __version__
+
 
 class ExternalAPIError(Exception):
     pass
@@ -82,7 +84,7 @@ def create_session() -> requests.Session:
     session.mount("https://", HTTPAdapter(max_retries=retries))
     session.headers.update(
         {
-            "User-Agent": f"Pretix-ESNCard-Validator/1.0 (+{settings.SITE_URL})",
+            "User-Agent": f"Pretix-ESNCard-Validator/{__version__} (+{settings.SITE_URL})",
             "Accept": "application/json",
         }
     )
