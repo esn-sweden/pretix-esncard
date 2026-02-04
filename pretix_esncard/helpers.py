@@ -15,6 +15,8 @@ def val_esncard(
     position: CartPosition | OrderPosition,
     request: HttpRequest,
 ):
+    esncard_number = normalize_input(esncard_number)
+
     if not esncard_number:
         return
 
@@ -69,7 +71,6 @@ def is_duplicate(
     position: CartPosition | OrderPosition,
     request: HttpRequest,
 ) -> bool:
-    card_num = card_num.strip().upper()
 
     # Case 1: Checkout flow → CartPosition
     if isinstance(position, CartPosition):
@@ -98,12 +99,12 @@ def is_duplicate(
         # if the answers have been modified
         new_val = get_esncard_from_post(question, pos, request)
         if new_val:
-            related.append(new_val.strip().upper())
+            related.append(normalize_input(new_val))
         else:
             logger.debug("Error getting POST data")
             for answer in pos.answers.all():  # type: ignore
                 if answer.question.identifier == "esncard":
-                    related.append(answer.answer.strip().upper())
+                    related.append(normalize_input(answer.answer))
 
     return card_num in related
 
@@ -124,3 +125,7 @@ def log_val_err(
         esncard_number,
         str(e),
     )
+
+
+def normalize_input(esncard_number: str) -> str:
+    return esncard_number.strip().replace(" ", "").upper()
