@@ -27,7 +27,7 @@ def val_esncard(
         esncard = fetch_card(esncard_number)
     except ExternalAPIError:
         raise ValidationError(
-            "Verification is temporarily unavailable. Please try again later. If the issue persists, contact support@seabattle.se"
+            "Verification is temporarily unavailable. Please try again later. If the issue persists, contact support@seabattle.se."
         )
 
     if not esncard:
@@ -41,7 +41,7 @@ def val_esncard(
         case CardStatus.AVAILABLE:
             raise ValidationError(
                 "The ESNcard is not registered, please register on esncard.org. "
-                "If you recently registered your card, it may take a few hours before it's updated in our systems"
+                "If you recently registered your card, it may take a few hours before it's updated in our system."
             )
         case CardStatus.EXPIRED:
             raise ValidationError(f"The ESNcard expired on {esncard.expiration_date}")
