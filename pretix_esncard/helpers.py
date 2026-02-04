@@ -1,7 +1,7 @@
 import logging
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest
-from pretix.base.models import CartPosition, OrderPosition, Question
+from pretix.base.models import CartPosition, Event, OrderPosition, Question
 
 from pretix_esncard.api import ExternalAPIError, fetch_card
 from pretix_esncard.models import CardStatus
@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 def val_esncard(
     esncard_number: str,
     question: Question,
+    event: Event,
     position: CartPosition | OrderPosition,
     request: HttpRequest,
 ):
@@ -29,7 +30,7 @@ def val_esncard(
         esncard = fetch_card(esncard_number)
     except ExternalAPIError:
         raise ValidationError(
-            "Verification is temporarily unavailable. Please try again later. If the issue persists, contact support@seabattle.se."
+            f"Verification is temporarily unavailable. Please try again later. If the issue persists, contact {get_contact_email(event)}."
         )
 
     if not esncard:
@@ -129,3 +130,11 @@ def log_val_err(
 
 def normalize_input(esncard_number: str) -> str:
     return esncard_number.strip().replace(" ", "").upper()
+
+
+def get_contact_email(event: Event) -> str:
+    return (
+        event.settings.get("contact_mail")
+        or event.organizer.settings.get("contact_mail")
+        or "the organizer"
+    )
