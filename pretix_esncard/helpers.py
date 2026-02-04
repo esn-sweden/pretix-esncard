@@ -41,7 +41,7 @@ def val_esncard(
         case CardStatus.AVAILABLE:
             raise ValidationError(
                 "The ESNcard is not registered, please register on esncard.org. "
-                "If you recently registered your card, it may take take a few hours before it's updated in the systems"
+                "If you recently registered your card, it may take a few hours before it's updated in our systems"
             )
         case CardStatus.EXPIRED:
             raise ValidationError(f"The ESNcard expired on {esncard.expiration_date}")
