@@ -67,7 +67,7 @@ def fetch_card(card_number: str) -> ESNCard | None:
     return esncard
 
 
-def get_cloudflare_token() -> str:
+def get_cloudflare_token() -> str | None:
     gs = GlobalSettingsObject()
     return gs.settings.get("esncard_cf_token")
 
