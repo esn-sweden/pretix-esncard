@@ -1,0 +1,60 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-02-05 06:30+0000\n"
+"PO-Revision-Date: \n"
+"Last-Translator: Me\n"
+"Language-Team: \n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: pretix_esncard/apps.py:17
+msgid "ESNcard Validity Checker"
+msgstr "ESNcard Validity Checker"
+
+#: pretix_esncard/apps.py:20
+msgid "A plugin for pretix allowing automated validation of ESNcard numbers"
+msgstr "A plugin for pretix allowing automated validation of ESNcard numbers"
+
+#: pretix_esncard/forms.py:8
+msgid "ESNcard API Cloudflare token"
+msgstr "ESNcard API Cloudflare token"
+
+#: pretix_esncard/forms.py:9
+msgid "Used to bypass Cloudflare bot measures"
+msgstr "Used to bypass Cloudflare bot measures"
+
+#: pretix_esncard/helpers.py:28
+msgid "Duplicate number. Each person must have a unique ESNcard."
+msgstr "Duplicate number. Each person must have a unique ESNcard."
+
+#: pretix_esncard/helpers.py:36
+#, fuzzy, python-format
+msgid ""
+"Verification is temporarily unavailable. Please try again later. If the "
+"issue persists, contact %(email)s."
+msgstr ""
+"Verification is temporarily unavailable. Please try again later. If the "
+"issue persists, contact %(email)s."
+
+#: pretix_esncard/helpers.py:43
+msgid "Couldn't find an ESNcard with this number, please check for typos."
+msgstr "Couldn't find an ESNcard with this number, please check for typos."
+
+#: pretix_esncard/helpers.py:52
+msgid ""
+"The ESNcard is not registered, please register on esncard.org. If you "
+"recently registered your card, it may take a few hours before it's updated "
+"in our system."
+msgstr ""
+"The ESNcard is not registered, please register on esncard.org. If you "
+"recently registered your card, it may take a few hours before it's updated "
+"in our system."
+
+#: pretix_esncard/helpers.py:59
+#, fuzzy, python-format
+msgid "The ESNcard expired on %(exp_date)s"
+msgstr "The ESNcard expired on %(exp_date)s"

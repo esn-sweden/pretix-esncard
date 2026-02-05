@@ -1,6 +1,8 @@
 import logging
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest
+from django.utils.translation import gettext_lazy as _
+from django.utils.formats import localize
 from pretix.base.models import CartPosition, Event, OrderPosition, Question
 
 from pretix_esncard.api import ExternalAPIError, fetch_card
@@ -23,19 +25,22 @@ def val_esncard(
 
     if is_duplicate(esncard_number, question, position, request):
         raise ValidationError(
-            "Duplicate number. Each person must have a unique ESNcard."
+            _("Duplicate number. Each person must have a unique ESNcard.")
         )
 
     try:
         esncard = fetch_card(esncard_number)
     except ExternalAPIError:
         raise ValidationError(
-            f"Verification is temporarily unavailable. Please try again later. If the issue persists, contact {get_contact_email(event)}."
+            _(
+                "Verification is temporarily unavailable. Please try again later. If the issue persists, contact %(email)s."
+            )
+            % {"email": get_contact_email(event)}
         )
 
     if not esncard:
         raise ValidationError(
-            "Couldn't find an ESNcard with this number, please check for typos."
+            _("Couldn't find an ESNcard with this number, please check for typos.")
         )
 
     match esncard.status:
@@ -43,11 +48,18 @@ def val_esncard(
             return
         case CardStatus.AVAILABLE:
             raise ValidationError(
-                "The ESNcard is not registered, please register on esncard.org. "
-                "If you recently registered your card, it may take a few hours before it's updated in our system."
+                _(
+                    "The ESNcard is not registered, please register on esncard.org. "
+                    "If you recently registered your card, it may take a few hours before it's updated in our system."
+                )
             )
         case CardStatus.EXPIRED:
-            raise ValidationError(f"The ESNcard expired on {esncard.expiration_date}")
+            raise ValidationError(
+                _(
+                    "The ESNcard expired on %(exp_date)s"
+                    % {"exp_date": localize(esncard.expiration_date)}
+                )
+            )
 
 
 def get_esncard_from_post(

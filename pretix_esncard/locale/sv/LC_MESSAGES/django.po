@@ -1,0 +1,60 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-02-05 06:30+0000\n"
+"PO-Revision-Date: \n"
+"Last-Translator: Me\n"
+"Language-Team: \n"
+"Language: sv\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: pretix_esncard/apps.py:17
+msgid "ESNcard Validity Checker"
+msgstr "ESN‑korts-validator"
+
+#: pretix_esncard/apps.py:20
+msgid "A plugin for pretix allowing automated validation of ESNcard numbers"
+msgstr "Ett tillägg för Pretix som möjliggör automatisk validering av ESN‑kortnummer"
+
+#: pretix_esncard/forms.py:8
+msgid "ESNcard API Cloudflare token"
+msgstr "Cloudflare‑token för ESNcards API"
+
+#: pretix_esncard/forms.py:9
+msgid "Used to bypass Cloudflare bot measures"
+msgstr "Används för att kringgå Cloudflares bot‑skydd"
+
+#: pretix_esncard/helpers.py:28
+msgid "Duplicate number. Each person must have a unique ESNcard."
+msgstr "Dubblettnummer. Varje person måste ha ett unikt ESN‑kort."
+
+#: pretix_esncard/helpers.py:36
+#, python-format
+msgid ""
+"Verification is temporarily unavailable. Please try again later. If the "
+"issue persists, contact %(email)s."
+msgstr ""
+"Verifieringen är tillfälligt otillgänglig. Försök igen senare. Om problemet "
+"kvarstår, kontakta %(email)s."
+
+#: pretix_esncard/helpers.py:43
+msgid "Couldn't find an ESNcard with this number, please check for typos."
+msgstr "Kunde inte hitta ett ESN‑kort med detta nummer, kontrollera eventuella skrivfel."
+
+#: pretix_esncard/helpers.py:52
+msgid ""
+"The ESNcard is not registered, please register on esncard.org. If you "
+"recently registered your card, it may take a few hours before it's updated "
+"in our system."
+msgstr ""
+"ESN‑kortet är inte registrerat, vänligen registrera det på esncard.org. "
+"Om du nyligen registrerat kortet kan det ta några timmar innan det syns i "
+"vårt system."
+
+#: pretix_esncard/helpers.py:59
+#, python-format
+msgid "The ESNcard expired on %(exp_date)s"
+msgstr "ESN‑kortet gick ut den %(exp_date)s"
