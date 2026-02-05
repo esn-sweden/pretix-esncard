@@ -48,18 +48,28 @@ def fetch_card(card_number: str) -> ESNCard | None:
         response.raise_for_status()
         data = response.json()
     except (RequestException, JSONDecodeError) as e:
+        status = getattr(e.response, "status_code", None)
+        body = getattr(e.response, "text", None)
         logger.error(
-            "ESNcard API request failed for card %s (URL: %s) with error: %s",
+            "ESNcard API request failed for card %s (URL: %s). Status: %s. Error: %s. Body: %s",
             card_number,
             url,
+            status,
             e,
+            body,
         )
         raise ExternalAPIError("Error contacting ESNcard API")
 
     try:
         esncards = ESNCardResponse.model_validate(data).root
     except ValidationError as e:
-        logger.error("API returned incorrect data model: %s", e.json())
+        logger.error(
+            "API returned invalid data for card %s (URL: %s). Validation error: %s. Raw response: %s",
+            card_number,
+            url,
+            e.json(),
+            data,
+        )
         raise ExternalAPIError("API returned wrongly formatted data")
 
     esncard = esncards[0] if esncards else None

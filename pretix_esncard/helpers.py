@@ -59,10 +59,11 @@ def get_esncard_from_post(
         return field
     else:
         logger.warning(
-            "Could not get esncard field from POST. Tried to get: %s From: %s",
+            "Could not get esncard field from POST. Tried to get: %s. POST keys: %s",
             field_name,
-            request.POST,
+            list(request.POST.keys()),
         )
+
     return request.POST.get(field_name)
 
 
@@ -86,8 +87,10 @@ def is_duplicate(
     # Fallback (should never happen)
     else:
         logger.warning(
-            "Pretix signal returned a position that was neither CartPosition nor OrderPosition"
+            "Pretix signal returned unexpected position type: %s",
+            type(position).__name__,
         )
+
         return False
 
     if positions.count() == 0:
@@ -95,14 +98,12 @@ def is_duplicate(
 
     related = []
     for pos in positions:
-        logger.debug(position.attendee_name)
         # Get new values from POST as otherwise you will compare to the existing data in the db which may cause errors
         # if the answers have been modified
         new_val = get_esncard_from_post(question, pos, request)
         if new_val:
             related.append(normalize_input(new_val))
         else:
-            logger.debug("Error getting POST data")
             for answer in pos.answers.all():  # type: ignore
                 if answer.question.identifier == "esncard":
                     related.append(normalize_input(answer.answer))
@@ -115,17 +116,6 @@ def get_esncard_question(position: CartPosition | OrderPosition) -> Question | N
         if question.identifier == "esncard":
             return question
     return None
-
-
-def log_val_err(
-    esncard_number: str, position: CartPosition | OrderPosition, e: ValidationError
-):
-    logger.info(
-        "ESNcard validation failed. Name: %s, ESNcard number: %s, Error: %s",
-        position.attendee_name,
-        esncard_number,
-        str(e),
-    )
 
 
 def normalize_input(esncard_number: str) -> str:

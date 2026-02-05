@@ -1,11 +1,10 @@
 from collections import OrderedDict
-from django.core.exceptions import ValidationError
 from django.dispatch import receiver
 from pretix.base.signals import register_global_settings
 from pretix.presale.signals import question_form_fields_overrides
 
 from pretix_esncard.forms import ESNCardSettingsForm
-from pretix_esncard.helpers import get_esncard_question, log_val_err, val_esncard
+from pretix_esncard.helpers import get_esncard_question, val_esncard
 
 
 @receiver(question_form_fields_overrides, dispatch_uid="esncard_form_field")
@@ -15,11 +14,7 @@ def override_esncard_question(sender, position, request, **kwargs):
         return {}
 
     def validate_esncard_field(esncard_number: str):
-        try:
-            val_esncard(esncard_number, question, sender, position, request)
-        except ValidationError as e:
-            log_val_err(esncard_number, position, e)
-            raise
+        val_esncard(esncard_number, question, sender, position, request)
 
     return {question.identifier: {"validators": [validate_esncard_field]}}
 
