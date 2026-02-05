@@ -8,7 +8,7 @@ from requests import JSONDecodeError, RequestException, Session
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from pretix_esncard.models import ESNCard, ESNCardResponse
+from pretix_esncard.models import CardStatus, ESNCard, ESNCardResponse
 
 from . import __version__
 
@@ -41,6 +41,7 @@ def fetch_card(card_number: str) -> ESNCard | None:
     if card_number in _cache:
         ts, cached = _cache[card_number]
         if now - ts < CACHE_TTL:
+            logger.debug("Using cached data for card %s", card_number)
             return cached
 
     try:
@@ -73,7 +74,10 @@ def fetch_card(card_number: str) -> ESNCard | None:
         raise ExternalAPIError("API returned wrongly formatted data")
 
     esncard = esncards[0] if esncards else None
-    _cache[card_number] = (now, esncard)
+
+    # Don't cache unregistered cards, to allow the status to refresh quickly after registration.
+    if esncard is None or esncard.status != CardStatus.AVAILABLE:
+        _cache[card_number] = (now, esncard)
     return esncard
 
 
