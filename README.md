@@ -76,6 +76,8 @@ To avoid getting blocked by Cloudflare when sending many requests, you may ask t
 
 5. Enable the plugin in the event settings.
 
+In VS Code configure `Python: Select Interpreter` and point it to `path/to/pretix/env/bin/python`. Never create a virtual environment within `pretix-esncard`, it will lead to errors.
+
 ### Linting
 
 This plugin has CI set up to enforce a few code style rules. To check locally, you need these packages installed:
@@ -104,7 +106,7 @@ To automatically check for these issues before you commit, add the following to 
 ````bash
 #!/bin/bash
 
-source /home/user/pretix-esncard/env/bin/activate  # Adjust this to the path on your computer
+source /home/user/pretix/env/bin/activate  # Adjust this to the path on your computer
 for file in $(git diff --cached --name-only | grep -E '\.py$' | grep -Ev "migrations|mt940\.py|pretix/settings\.py|make>
 do
   echo $file
