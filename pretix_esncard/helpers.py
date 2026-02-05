@@ -1,8 +1,8 @@
 import logging
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest
-from django.utils.translation import gettext_lazy as _
 from django.utils.formats import localize
+from django.utils.translation import gettext_lazy as _
 from pretix.base.models import CartPosition, Event, OrderPosition, Question
 
 from pretix_esncard.api import ExternalAPIError, fetch_card
