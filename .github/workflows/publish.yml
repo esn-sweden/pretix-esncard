@@ -64,7 +64,7 @@ jobs:
 
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/test-pretix-esncard
+      url: https://test.pypi.org/p/pretix-esncard
 
     permissions:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
