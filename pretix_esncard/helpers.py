@@ -62,23 +62,6 @@ def val_esncard(
             )
 
 
-def get_esncard_from_post(
-    question: Question, pos: CartPosition | OrderPosition, request: HttpRequest
-):
-    field_name = f"{pos.id}-question_{question.id}"
-    field = request.POST.get(field_name)
-    if field:
-        return field
-    else:
-        logger.warning(
-            "Could not get esncard field from POST. Tried to get: %s. POST keys: %s",
-            field_name,
-            list(request.POST.keys()),
-        )
-
-    return request.POST.get(field_name)
-
-
 def is_duplicate(
     card_num: str,
     question: Question,
@@ -86,51 +69,58 @@ def is_duplicate(
     request: HttpRequest,
 ) -> bool:
 
-    # Case 1: Checkout flow → CartPosition
+    positions = get_siblings(position)
+    if not positions:
+        return False
+
+    return any(
+        get_answer_from_post_or_db(question, pos, request) == card_num
+        for pos in positions
+    )
+
+
+def get_siblings(
+    position: CartPosition | OrderPosition,
+) -> list[CartPosition | OrderPosition]:
+    # During checkout
     if isinstance(position, CartPosition):
-        positions = CartPosition.objects.filter(
-            event=position.event, cart_id=position.cart_id
-        ).exclude(pk=position.pk)
+        return list(
+            CartPosition.objects.filter(
+                event=position.event, cart_id=position.cart_id
+            ).exclude(pk=position.pk)
+        )
 
-    # Case 2: Editing an existing order → OrderPosition
+    # When editing an existing order
     elif isinstance(position, OrderPosition):
-        positions = position.order.positions.exclude(pk=position.pk)
+        return list(position.order.positions.exclude(pk=position.pk))
 
-    # Fallback (should never happen)
     else:
         logger.warning(
             "Pretix signal returned unexpected position type: %s",
             type(position).__name__,
         )
 
-        return False
-
-    if positions.count() == 0:
-        return False
-
-    related = []
-    for pos in positions:
-        # Get new values from POST as otherwise you will compare to the existing data in the db which may cause errors
-        # if the answers have been modified
-        new_val = get_esncard_from_post(question, pos, request)
-        if new_val:
-            related.append(normalize_input(new_val))
-        else:
-            for answer in pos.answers.all():  # type: ignore
-                if answer.question.identifier == "esncard":
-                    related.append(normalize_input(answer.answer))
-
-    return card_num in related
+        return []
 
 
-def get_esncard_question(position: CartPosition | OrderPosition) -> Question | None:
-    for question in position.item.questions.all():
-        if question.identifier == "esncard":
-            return question
+def get_answer_from_post_or_db(
+    question: Question, pos: CartPosition | OrderPosition, request: HttpRequest
+) -> str | None:
+    field_name = f"{pos.id}-question_{question.id}"
+    post_answer = request.POST.get(field_name)
+    if post_answer:
+        return normalize_input(post_answer)
+
+    db_answer = pos.answers.filter(question=question).first()
+    if db_answer:
+        return normalize_input(db_answer.answer)
+
     return None
 
 
-def normalize_input(esncard_number: str) -> str:
+def normalize_input(esncard_number: str | None) -> str:
+    if not esncard_number:
+        return ""
     return esncard_number.strip().replace(" ", "").upper()
 
 
@@ -138,5 +128,9 @@ def get_contact_email(event: Event) -> str:
     return (
         event.settings.get("contact_mail")
         or event.organizer.settings.get("contact_mail")
-        or "the organizer"
+        or _("the organizer")
     )
+
+
+def get_esncard_question(position: CartPosition | OrderPosition) -> Question | None:
+    return position.item.questions.filter(identifier="esncard").first()
