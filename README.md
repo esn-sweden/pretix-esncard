@@ -64,20 +64,17 @@ To avoid getting blocked by Cloudflare when sending many requests, you may ask t
 
 ## Development
 
-### Environment
+### Setup
 
-1. Make sure that you have a working [pretix development setup](https://docs.pretix.eu/en/latest/development/setup.html)
+1. Make sure that you have a working [pretix development setup](https://docs.pretix.eu/en/latest/development/setup.html), including a virtual environment. Running on Linux is highly recommended as you may face issues with Windows.
 
-2. Clone this repository.
+2. Activate the virtual environment (from the pretix repository, not here!).
 
-3. Activate the virtual environment you use for pretix development.
+3. `cd` to the `pretix-esncard` repository and run `python3 setup.py develop`. This will install the plugin on the Pretix instance.
 
-4. Execute `python setup.py develop` within this directory to register this application with pretix's plugin registry.
+4. Go back to the `pretix` repository. `cd` into `src` and run `python3 manage.py runserver`.
 
-5. Execute ``make`` within this directory to compile translations.
-
-6. Restart your local pretix server. You can now use the plugin from this repository for your events by enabling it in
-   the 'plugins' tab in the settings.
+5. Enable the plugin in the event settings.
 
 ### Linting
 
@@ -102,7 +99,39 @@ isort .
 black .
 ````
 
-To automatically check for these issues before you commit, you can run `.install-hooks`.
+To automatically check for these issues before you commit, add the following to `.git/hooks/pre-commit`:
+
+````bash
+#!/bin/bash
+
+source /home/user/pretix-esncard/env/bin/activate  # Adjust this to the path on your computer
+for file in $(git diff --cached --name-only | grep -E '\.py$' | grep -Ev "migrations|mt940\.py|pretix/settings\.py|make>
+do
+  echo $file
+  git show ":$file" | flake8 - --stdin-display-name="$file" || exit 1 # we only want to lint the staged changes, not an>
+  git show ":$file" | isort -c - | grep ERROR && exit 1 || true
+done
+````
+
+### Translations
+
+Update translatable strings:
+
+````sh
+make localegen
+````
+
+After translating the strings in the `.po` files, run
+
+````sh
+make
+````
+
+to generate the binary `.mo` files.
+
+
+Add a new language by copying the file structure. `LANGUAGE_CODE/LC_MESSAGES/django.po`.
+Make sure `Language:` in the header contains the correct language code.
 
 ## License
 
