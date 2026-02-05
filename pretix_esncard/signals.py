@@ -4,7 +4,7 @@ from pretix.base.signals import register_global_settings
 from pretix.presale.signals import question_form_fields_overrides
 
 from pretix_esncard.forms import ESNCardSettingsForm
-from pretix_esncard.helpers import get_esncard_question, val_esncard
+from pretix_esncard.validation import get_esncard_question, val_esncard
 
 
 @receiver(question_form_fields_overrides, dispatch_uid="esncard_form_field")
