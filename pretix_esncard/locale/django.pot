@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-05 06:31+0000\n"
+"POT-Creation-Date: 2026-02-05 17:09+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -58,4 +58,8 @@ msgstr ""
 #: pretix_esncard/helpers.py:59
 #, python-format
 msgid "The ESNcard expired on %(exp_date)s"
+msgstr ""
+
+#: pretix_esncard/helpers.py:131
+msgid "the organizer"
 msgstr ""

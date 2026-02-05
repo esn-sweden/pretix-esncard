@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-05 06:30+0000\n"
+"POT-Creation-Date: 2026-02-05 17:09+0000\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Me\n"
 "Language-Team: \n"
@@ -58,3 +58,7 @@ msgstr ""
 #, fuzzy, python-format
 msgid "The ESNcard expired on %(exp_date)s"
 msgstr "The ESNcard expired on %(exp_date)s"
+
+#: pretix_esncard/helpers.py:131
+msgid "the organizer"
+msgstr "the organizer"
