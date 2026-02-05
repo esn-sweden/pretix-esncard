@@ -2,4 +2,6 @@ recursive-include pretix_esncard/static *
 recursive-include pretix_esncard/templates *
 recursive-include pretix_esncard/locale *
 include LICENSE
+include README.md
+include SECURITY.md
 exclude .gitlab-ci.yml

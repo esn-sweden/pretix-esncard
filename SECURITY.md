@@ -2,4 +2,4 @@
 
 ## Reporting a Vulnerability
 
-Please report vulnerabilities privately to security@esnsweden.org.
+Please report vulnerabilities privately to <security@esnsweden.org>.
