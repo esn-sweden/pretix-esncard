@@ -1,3 +1,6 @@
+[![PyPI - Version](https://img.shields.io/pypi/v/pretix-esncard)](https://pypi.org/project/pretix-esncard/)
+![PyPI - License](https://img.shields.io/pypi/l/pretix-esncard)
+
 # ESNcard Validity Checker
 
 A plugin for [Pretix](https://github.com/pretix/pretix) allowing automated validation of ESNcard numbers.
