@@ -4,7 +4,7 @@ import time
 from django.conf import settings
 from pretix.base.settings import GlobalSettingsObject
 from pydantic import ValidationError
-from requests import JSONDecodeError, RequestException
+from requests import JSONDecodeError, RequestException, Session
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -21,7 +21,7 @@ CACHE_TTL = 300  # seconds
 
 logger = logging.getLogger(__name__)
 _cache: dict[str, tuple[float, ESNCard | None]] = {}
-_session = None
+_session: Session | None = None
 
 
 def fetch_card(card_number: str) -> ESNCard | None:
@@ -101,6 +101,7 @@ def create_session() -> requests.Session:
 
     # Add Cloudflare bypass token if configured, to avoid being blocked
     cf_token = get_cloudflare_token()
+    session.cf_token = cf_token
     if cf_token:
         session.headers.update({"x-bypass-cf-api": cf_token})
 
@@ -109,6 +110,10 @@ def create_session() -> requests.Session:
 
 def get_session():
     global _session
-    if _session is None:
+    current_token = get_cloudflare_token()
+
+    # Create a new session if the Cloudflare token has changed
+    if _session is None or getattr(_session, "cf_token", None) != current_token:
         _session = create_session()
+
     return _session
