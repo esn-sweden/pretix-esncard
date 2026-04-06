@@ -55,15 +55,13 @@ def val_esncard(
             )
         case CardStatus.EXPIRED:
             raise ValidationError(
-                _(
-                    "The ESNcard expired on %(exp_date)s"
-                    % {"exp_date": localize(esncard.expiration_date)}
-                )
+                _("The ESNcard expired on %(exp_date)s")
+                % {"exp_date": localize(esncard.expiration_date)}
             )
 
 
 def is_duplicate(
-    card_num: str,
+    esncard_number: str,
     question: Question,
     position: CartPosition | OrderPosition,
     request: HttpRequest,
@@ -74,7 +72,7 @@ def is_duplicate(
         return False
 
     return any(
-        get_answer_from_post_or_db(question, pos, request) == card_num
+        get_answer_from_post_or_db(question, pos, request) == esncard_number
         for pos in positions
     )
 

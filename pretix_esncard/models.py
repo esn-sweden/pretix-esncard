@@ -20,7 +20,7 @@ class ESNCard(BaseModel):
     @field_validator(
         "expiration_date", "section_code", "activation_date", mode="before"
     )
-    def normalize_empty(cls, value: str):
+    def normalize_empty(self, value: str):
         if isinstance(value, list):
             if len(value) == 0:
                 return None
