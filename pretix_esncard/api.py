@@ -22,6 +22,7 @@ CACHE_TTL = 300  # seconds
 logger = logging.getLogger(__name__)
 _cache: dict[str, tuple[float, ESNCard | None]] = {}
 _session: Session | None = None
+_cf_token: str | None  # Cloudflare token to bypass bot filter
 
 
 def fetch_card(card_number: str) -> ESNCard | None:
@@ -34,7 +35,8 @@ def fetch_card(card_number: str) -> ESNCard | None:
     Raises:
         ExternalAPIError: If the API request or response is invalid.
     """
-    url = f"https://esncard.org/services/1.0/card.json?code={card_number}"
+    url = "https://esncard.org/services/1.0/card.json"
+    params = {"code": card_number}
     now = time.time()
 
     # Return cached result if the ESNcard number was tried recently
@@ -45,7 +47,7 @@ def fetch_card(card_number: str) -> ESNCard | None:
             return cached
 
     try:
-        response = get_session().get(url, timeout=(2, 6))
+        response = get_session().get(url, params=params, timeout=(2, 6))
         response.raise_for_status()
         data = response.json()
     except (RequestException, JSONDecodeError) as e:
@@ -81,11 +83,6 @@ def fetch_card(card_number: str) -> ESNCard | None:
     return esncard
 
 
-def get_cloudflare_token() -> str | None:
-    gs = GlobalSettingsObject()
-    return gs.settings.get("esncard_cf_token")
-
-
 def create_session() -> requests.Session:
     session = requests.Session()
 
@@ -103,21 +100,22 @@ def create_session() -> requests.Session:
         }
     )
 
-    # Add Cloudflare bypass token if configured, to avoid being blocked
-    cf_token = get_cloudflare_token()
-    session.cf_token = cf_token
-    if cf_token:
-        session.headers.update({"x-bypass-cf-api": cf_token})
+    if _cf_token:
+        session.headers.update({"x-bypass-cf-api": _cf_token})
 
     return session
 
 
 def get_session():
     global _session
-    current_token = get_cloudflare_token()
+    global _cf_token
+
+    gs = GlobalSettingsObject()
+    current_token = gs.settings.get("esncard_cf_token")
 
     # Create a new session if the Cloudflare token has changed
-    if _session is None or getattr(_session, "cf_token", None) != current_token:
+    if _session is None or _cf_token != current_token:
+        _cf_token = current_token
         _session = create_session()
 
     return _session
